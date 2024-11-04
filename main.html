@@ -1,0 +1,197 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Software Render</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/13.2.0/math.js"></script>
+    </head>
+    <body>
+
+        <canvas id="Canvas"></canvas>
+        <label for="slider">Rotation Yaxis</label>
+        <input type="range" id="slider" min="0" max="360" value="0">
+
+        <script>
+
+            const canvas = document.getElementById('Canvas');
+            const ctx = canvas.getContext('2d');
+
+            var canvasWidth=800;
+            var canvasHeight=600;
+            var sqr2=math.sqrt(2);
+
+            //camera settings
+            var angleY=math.PI;
+            var angleX=0;
+            var angleZ=0;
+
+            //view frustum parameters
+            var cameraPos=[20,20,-50];
+            var far=80;
+            var near=10;
+            var fovX=math.PI/2;
+            var fovY=math.PI/2;
+
+            var blockPosition=[20,20,10];
+            var blockScale=10;
+            var blockRotation=0;
+
+            var vertex=[[[-1,-1,1,1]],[[1,-1,1,1]],[[-1,-1,-1,1]],[[1,-1,-1,1]],
+                        [[-1,1,1,1]],[[1,1,1,1]],[[-1,1,-1,1]],[[1,1,-1,1]]];
+
+            var vertexPrefab=[[[-1,-1,1,1]],[[1,-1,1,1]],[[-1,-1,-1,1]],[[1,-1,-1,1]],
+                              [[-1,1,1,1]],[[1,1,1,1]],[[-1,1,-1,1]],[[1,1,-1,1]]];
+    
+            // Function to draw a pixel
+            function drawPixel(x, y, color) {
+                ctx.fillStyle = color;       
+                ctx.fillRect(x, y, 1, 1);
+            }
+
+            function drawLine(v1,v2,color)
+            {
+                ctx.strokeStyle=color
+                
+                ctx.beginPath();
+                ctx.moveTo(v1[0], v1[1]);
+                ctx.lineTo(v2[0], v2[1]);
+                ctx.stroke();
+            }
+
+            function translation(x,y,z)
+            {
+                return math.matrix([[1,0,0,x],
+                                    [0,1,0,y],
+                                    [0,0,1,z],
+                                    [0,0,0,1]]);
+            }
+
+            function RotationY(angle)
+            {
+                return math.matrix([[math.cos(angle),0,math.sin(angle),0],
+                                    [0,1,0,0],
+                                    [-math.sin(angle),0,math.cos(angle),0],
+                                    [0,0,0,1]]);
+            }
+
+            function Scale(x,y,z)
+            {
+                return math.matrix([[x,0,0,0],
+                                    [0,y,0,0],
+                                    [0,0,z,0],
+                                    [0,0,0,1]]);
+            }
+
+            function Projection()
+            {
+                return math.matrix([[1/math.tan(fovX/2),0,0,0],
+                                    [0,1/math.tan(fovY/2),0,0],
+                                    [0,0,-(far+near)/(far-near),-(2*far*near)/(far-near)],
+                                    [0,0,-1,0]]);
+            } 
+
+            function transform()
+            {
+                var S=Scale(10,10,10);
+                var R=RotationY(lerp(0,2*math.PI,blockRotation));
+                var T=translation(20,20,10);
+
+                var transfromMatrix=math.multiply(T,R,S);
+
+                for(let i=0;i<vertex.length;i++)
+                {
+                    vertex[i]=math.multiply(transfromMatrix,math.transpose(vertex[i]));
+                    //console.log(vertex[i]);
+
+                    //console.log(math.divide(vertex[i],vertex[i]._data[3]));
+                    
+                }
+            }
+
+            function transformCamera()
+            {
+                var T=translation(-cameraPos[0],-cameraPos[1],-cameraPos[2]);
+                var R=RotationY(-angleY);
+                var P=Projection();
+
+                var transfromMatrix=math.multiply(P,R,T);
+
+
+                for(let i=0;i<vertex.length;i++)
+                {
+                    vertex[i]=math.multiply(transfromMatrix,vertex[i]);
+
+                    vertex[i]=math.divide(vertex[i],vertex[i]._data[3]);
+
+                    //console.log(vertex[i]);
+
+                    //console.log(math.divide(vertex[i],vertex[i]._data[3]));
+                    
+                }
+            }
+
+            function transformScreen()
+            {
+                var T=translation(1,1,1);
+                var S=Scale(canvasWidth/2,canvasHeight/2,1);
+
+                var transfromMatrix=math.multiply(S,T);
+
+                for(let i=0;i<vertex.length;i++)
+                {
+                    vertex[i]=math.multiply(transfromMatrix,vertex[i]);
+
+                    //console.log(vertex[i]);
+                }
+
+            }
+
+            function draw()
+            {
+                ctx.clearRect(0,0,canvasWidth,canvasHeight);
+
+                vertex=vertexPrefab.slice();
+
+                transform();
+                transformCamera();
+                transformScreen();
+
+                for(let i=0;i<vertex.length;i++)
+                {
+                    vertex[i]=[vertex[i]._data[0],canvasHeight-vertex[i]._data[1]];
+                }
+
+                drawLine(vertex[0],vertex[1],"black");
+                drawLine(vertex[2],vertex[3],"black");
+                drawLine(vertex[0],vertex[2],"black");
+                drawLine(vertex[1],vertex[3],"black");
+                drawLine(vertex[4],vertex[5],"black");
+                drawLine(vertex[6],vertex[7],"black");
+                drawLine(vertex[4],vertex[6],"black");
+                drawLine(vertex[5],vertex[7],"black");
+                drawLine(vertex[0],vertex[4],"black");
+                drawLine(vertex[1],vertex[5],"black");
+                drawLine(vertex[2],vertex[6],"black");
+                drawLine(vertex[3],vertex[7],"black");
+            }
+
+            function lerp(a,b,alpha) 
+            {
+                return a+alpha*(b-a);
+            }
+
+            canvas.setAttribute("width",canvasWidth);
+            canvas.setAttribute("height",canvasHeight);
+
+            slider = document.getElementById('slider');
+            slider.addEventListener('input', function() {
+                blockRotation = slider.value/360;
+                draw();
+                console.log(blockRotation);
+            });
+
+            draw();
+
+        </script>
+
+    </body>
+</html>
