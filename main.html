@@ -3,6 +3,7 @@
         <meta charset="UTF-8">
         <title>Software Render</title>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/13.2.0/math.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/nicolaspanel/numjs@0.15.1/dist/numjs.min.js"></script>
     </head>
     <body>
 
@@ -45,8 +46,8 @@
                 constructor()
                 {
                     this.P=this.Projection();
-                    this.transfromScreenMatrix=math.multiply(this.Scale(canvasWidth/2,canvasHeight/2,1),this.translation(1,1,1));
-                    this.transformCameraMatrix=math.multiply(this.Projection(),this.RotationY(-angleY),this.translation(-cameraPos[0],-cameraPos[1],-cameraPos[2]));
+                    this.transfromScreenMatrix=nj.dot(this.Scale(canvasWidth/2,canvasHeight/2,1),this.translation(1,1,1));
+                    this.transformCameraMatrix=nj.dot(this.Projection(),nj.dot(this.RotationY(-angleY),this.translation(-cameraPos[0],-cameraPos[1],-cameraPos[2])));
                 }
 
                 // Function to draw a pixel
@@ -67,34 +68,34 @@
 
                 translation(x,y,z)
                 {
-                    return math.matrix([[1,0,0,x],
-                                        [0,1,0,y],
-                                        [0,0,1,z],
-                                        [0,0,0,1]]);
+                    return nj.array([[1,0,0,x],
+                                     [0,1,0,y],
+                                     [0,0,1,z],
+                                     [0,0,0,1]]);
                 }
 
                 RotationY(angle)
                 {
-                    return math.matrix([[math.cos(angle),0,math.sin(angle),0],
-                                        [0,1,0,0],
-                                        [-math.sin(angle),0,math.cos(angle),0],
-                                        [0,0,0,1]]);
+                    return nj.array([[math.cos(angle),0,math.sin(angle),0],
+                                     [0,1,0,0],
+                                     [-math.sin(angle),0,math.cos(angle),0],
+                                     [0,0,0,1]]);
                 }
 
                 Scale(x,y,z)
                 {
-                    return math.matrix([[x,0,0,0],
-                                        [0,y,0,0],
-                                        [0,0,z,0],
-                                        [0,0,0,1]]);
+                    return nj.array([[x,0,0,0],
+                                     [0,y,0,0],
+                                     [0,0,z,0],
+                                     [0,0,0,1]]);
                 }
 
                 Projection()
                 {
-                    return math.matrix([[1/math.tan(fovX/2),0,0,0],
-                                        [0,1/math.tan(fovY/2),0,0],
-                                        [0,0,-(far+near)/(far-near),-(2*far*near)/(far-near)],
-                                        [0,0,-1,0]]);
+                    return nj.array([[1/math.tan(fovX/2),0,0,0],
+                                     [0,1/math.tan(fovY/2),0,0],
+                                     [0,0,-(far+near)/(far-near),-(2*far*near)/(far-near)],
+                                     [0,0,-1,0]]);
                 } 
 
                 transform(object)
@@ -103,11 +104,11 @@
                     var R=this.RotationY(lerp(0,2*math.PI,object.rotation[1]));
                     var T=this.translation(object.position[0],object.position[1],object.position[2]);
 
-                    var transfromMatrix=math.multiply(T,R,S);
+                    var transfromMatrix=nj.dot(T,nj.dot(R,S));
 
                     for(let i=0;i<this.vertex.length;i++)
                     {
-                        this.vertex[i]=math.multiply(transfromMatrix,math.transpose(this.vertex[i]));
+                        this.vertex[i]=nj.dot(transfromMatrix,nj.transpose(this.vertex[i]));
                     }
                 }
 
@@ -115,9 +116,9 @@
                 {
                     for(let i=0;i<this.vertex.length;i++)
                     {
-                        this.vertex[i]=math.multiply(this.transformCameraMatrix,this.vertex[i]);
+                        this.vertex[i]=nj.dot(this.transformCameraMatrix,this.vertex[i]);
 
-                        this.vertex[i]=math.divide(this.vertex[i],this.vertex[i]._data[3]);                    
+                        this.vertex[i]=nj.divide(this.vertex[i],this.vertex[i].get(3));                    
                     }
                 }
 
@@ -125,7 +126,7 @@
                 {
                     for(let i=0;i<this.vertex.length;i++)
                     {
-                        this.vertex[i]=math.multiply(this.transfromScreenMatrix,this.vertex[i]);
+                        this.vertex[i]=nj.dot(this.transfromScreenMatrix,this.vertex[i]);
                     }
 
                 }
@@ -144,7 +145,7 @@
 
                         for(let j=0;j<this.vertex.length;j++)
                         {
-                            this.vertex[j]=[this.vertex[j]._data[0],canvasHeight-this.vertex[j]._data[1]];
+                            this.vertex[j]=[this.vertex[j].get(0),canvasHeight-this.vertex[j].get(1)];
                         }
 
                         for(let j=0;j<objectList[i].faces.length;j++)
@@ -229,7 +230,7 @@
 
                     var teapot=new GameObject(vertex,faces);
                     teapot.scale=[10,10,10];
-                    teapot.position=[30,0,10];
+                    teapot.position=[20,10,10];
 
                     objectList.push(teapot);
 
