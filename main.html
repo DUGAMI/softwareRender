@@ -131,6 +131,42 @@
 
                 }
 
+
+                scanLine(vertexs)
+                {
+                    var facePixel=[];
+
+                    var maxY=Math.max(vertexs[0][1],vertexs[1][1],vertexs[2][1]);
+                    var minY=Math.min(vertexs[0][1],vertexs[1][1],vertexs[2][1]);
+
+                    for(let scanY=minY;scanY<=maxY;scanY++)
+                    {
+                        var intersections=[];
+
+                        for(let i=0;i<3;i++)
+                        {
+                            var v1=vertexs[i];
+                            var v2=vertexs[(i+1)%3];
+
+                            if(((scanY-v1[1])*(scanY-v2[1])<=0)&&v1[1]!=v2[1])
+                            {
+                                intersections.push(v1[0] + (scanY - v1[1]) * (v2[0] - v1[0]) / (v2[1]-v1[1]))
+                            }
+                        }
+
+                        if(intersections.length==2)
+                        {
+                            var xleft=Math.round(Math.min(...intersections));
+                            var xRight=Math.round(Math.max(...intersections));
+
+                            for(let i=xleft;i<=xRight;i++)
+                                facePixel.push([i,Math.round(scanY)]);
+                        }
+                    }
+
+                    return facePixel;
+                }
+
                 draw()
                 {
                     ctx.clearRect(0,0,canvasWidth,canvasHeight);
@@ -152,9 +188,14 @@
                         {
                             var face=objectList[i].faces[j];
 
-                            this.drawLine(this.vertex[face[0]],this.vertex[face[1]],"black");
-                            this.drawLine(this.vertex[face[0]],this.vertex[face[2]],"black");
-                            this.drawLine(this.vertex[face[1]],this.vertex[face[2]],"black");   
+                            var fragment=pipeline.scanLine([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]]);
+
+                            for(let k=0;k<fragment.length;k++)
+                                pipeline.drawPixel(fragment[k][0],fragment[k][1],"green");
+
+                            // this.drawLine(this.vertex[face[0]],this.vertex[face[1]],"black");
+                            // this.drawLine(this.vertex[face[0]],this.vertex[face[2]],"black");
+                            // this.drawLine(this.vertex[face[1]],this.vertex[face[2]],"black");   
                         }
                         
                     }
@@ -235,6 +276,9 @@
                     objectList.push(teapot);
 
                     pipeline.draw();
+
+                    //var vertexs=[pipeline.vertex[0],pipeline.vertex[1],pipeline.vertex[4]];
+                    //pipeline.scanLine(vertexs);
                 };
 
                 reader.readAsText(file);
