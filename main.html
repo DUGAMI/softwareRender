@@ -106,29 +106,22 @@
 
                     var transfromMatrix=nj.dot(T,nj.dot(R,S));
 
-                    for(let i=0;i<this.vertex.length;i++)
-                    {
-                        this.vertex[i]=nj.dot(transfromMatrix,nj.transpose(this.vertex[i]));
-                    }
+                    this.vertex=nj.dot(transfromMatrix,this.vertex);
+
                 }
 
                 transformCamera()
                 {
-                    for(let i=0;i<this.vertex.length;i++)
-                    {
-                        this.vertex[i]=nj.dot(this.transformCameraMatrix,this.vertex[i]);
+                    this.vertex=nj.dot(this.transformCameraMatrix,this.vertex);
 
-                        this.vertex[i]=nj.divide(this.vertex[i],this.vertex[i].get(3));                    
-                    }
+                    var W=this.vertex.slice([3,4],null).T;
+                    W=nj.concatenate(W,W,W,W).T;
+                    this.vertex=nj.divide(this.vertex,W);
                 }
 
                 transformScreen()
                 {
-                    for(let i=0;i<this.vertex.length;i++)
-                    {
-                        this.vertex[i]=nj.dot(this.transfromScreenMatrix,this.vertex[i]);
-                    }
-
+                    this.vertex=nj.dot(this.transfromScreenMatrix,this.vertex);
                 }
 
 
@@ -173,29 +166,32 @@
 
                     for(let i=0;i<objectList.length;i++)
                     {
-                        this.vertex=objectList[i].vertex.slice();
+                        this.vertex=nj.array(objectList[i].vertex).T;
 
                         this.transform(objectList[i]);
                         this.transformCamera();
                         this.transformScreen();
 
-                        for(let j=0;j<this.vertex.length;j++)
-                        {
-                            this.vertex[j]=[this.vertex[j].get(0),canvasHeight-this.vertex[j].get(1)];
-                        }
+                        this.vertex=this.vertex.T;
+
+                        //取xy坐标
+                        var col0=this.vertex.slice(null,[0,1]);
+                        var col1=nj.subtract(nj.ones([this.vertex.shape[0],1]).multiply(canvasHeight),this.vertex.slice(null,[1,2]));
+                        this.vertex=nj.concatenate(col0,col1).tolist();
+
 
                         for(let j=0;j<objectList[i].faces.length;j++)
                         {
                             var face=objectList[i].faces[j];
 
-                            var fragment=pipeline.scanLine([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]]);
+                            //var fragment=pipeline.scanLine([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]]);
 
-                            for(let k=0;k<fragment.length;k++)
-                                pipeline.drawPixel(fragment[k][0],fragment[k][1],"green");
+                            //for(let k=0;k<fragment.length;k++)
+                                //pipeline.drawPixel(fragment[k][0],fragment[k][1],"green");
 
-                            // this.drawLine(this.vertex[face[0]],this.vertex[face[1]],"black");
-                            // this.drawLine(this.vertex[face[0]],this.vertex[face[2]],"black");
-                            // this.drawLine(this.vertex[face[1]],this.vertex[face[2]],"black");   
+                            this.drawLine(this.vertex[face[0]],this.vertex[face[1]],"black");
+                            this.drawLine(this.vertex[face[0]],this.vertex[face[2]],"black");
+                            this.drawLine(this.vertex[face[1]],this.vertex[face[2]],"black");   
                         }
                         
                     }
