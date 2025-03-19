@@ -4,6 +4,7 @@
         <title>Software Render</title>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/13.2.0/math.js"></script>
         <script src="https://cdn.jsdelivr.net/gh/nicolaspanel/numjs@0.15.1/dist/numjs.min.js"></script>
+
     </head>
     <body>
 
@@ -41,19 +42,31 @@
                 P=null;
                 transfromScreenMatrix=null;
                 transfromScreenMatrix=null;
+                ZBuffer=null;
+                imageData=null;
+                buffer=null;
+
                 //transfromMatrix=null;
 
                 constructor()
                 {
                     this.P=this.Projection();
-                    this.transfromScreenMatrix=nj.dot(this.Scale(canvasWidth/2,canvasHeight/2,1),this.translation(1,1,1));
+                    this.transfromScreenMatrix=nj.dot(this.Scale(canvasWidth/2,canvasHeight/2,1),this.translation(1,1,0));
                     this.transformCameraMatrix=nj.dot(this.Projection(),nj.dot(this.RotationY(-angleY),this.translation(-cameraPos[0],-cameraPos[1],-cameraPos[2])));
+                    this.ZBuffer=Array.from({ length: canvasHeight }, () => Array(canvasWidth).fill(1));
+
+                    this.imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+                    this.buffer = this.imageData.data;
                 }
 
                 // Function to draw a pixel
                 drawPixel(x, y, color) {
-                    ctx.fillStyle = color;       
-                    ctx.fillRect(x, y, 1, 1);
+
+                    var index = (y * canvasWidth + x) * 4;
+                    this.buffer[index] = color;   // R
+                    this.buffer[index + 1] = color; // G
+                    this.buffer[index + 2] = color;   // B
+                    this.buffer[index + 3] = 255; // A
                 }
 
                 drawLine(v1,v2,color)
@@ -143,17 +156,39 @@
 
                             if(((scanY-v1[1])*(scanY-v2[1])<=0)&&v1[1]!=v2[1])
                             {
-                                intersections.push(v1[0] + (scanY - v1[1]) * (v2[0] - v1[0]) / (v2[1]-v1[1]))
+                                var x=v1[0] + (scanY - v1[1]) * (v2[0] - v1[0]) / (v2[1] - v1[1]);
+                                var z=(1/v1[2]) + (scanY - v1[1]) * ((1/v2[2]) - (1/v1[2])) / (v2[1] - v1[1]);
+
+                                intersections.push([x,z]);
                             }
                         }
 
                         if(intersections.length==2)
                         {
-                            var xleft=Math.round(Math.min(...intersections));
-                            var xRight=Math.round(Math.max(...intersections));
+                            intersections.sort((a,b)=>a[0]-b[0]);
+
+                            // var xleft=Math.round(Math.min(intersections[0][0],intersections[1][0]));
+                            // var xRight=Math.round(Math.max(intersections[0][0],intersections[1][0]));
+
+                            var xleft=Math.round(intersections[0][0]);
+                            var xRight=Math.round(intersections[1][0]);
+
+                            var zleft=intersections[0][1];
+                            var zRight=intersections[1][1];
 
                             for(let i=xleft;i<=xRight;i++)
+                            {
+                                var z=1/(zleft + (i-xleft) * (zRight - zleft) / (xRight - xleft));
+
+                                //update ZBuffer
+                                if(z<this.ZBuffer[Math.round(scanY)][i])
+                                {
+                                    this.ZBuffer[Math.round(scanY)][i]=z;
+                                    this.drawPixel(i,Math.round(scanY),Math.round(z*255));
+                                }
+
                                 facePixel.push([i,Math.round(scanY)]);
+                            }
                         }
                     }
 
@@ -162,7 +197,9 @@
 
                 draw()
                 {
-                    ctx.clearRect(0,0,canvasWidth,canvasHeight);
+                    //ctx.clearRect(0,0,canvasWidth,canvasHeight);
+                    this.buffer.fill(0);
+                    this.ZBuffer=Array.from({ length: canvasHeight }, () => Array(canvasWidth).fill(1));
 
                     for(let i=0;i<objectList.length;i++)
                     {
@@ -177,22 +214,29 @@
                         //取xy坐标
                         var col0=this.vertex.slice(null,[0,1]);
                         var col1=nj.subtract(nj.ones([this.vertex.shape[0],1]).multiply(canvasHeight),this.vertex.slice(null,[1,2]));
-                        this.vertex=nj.concatenate(col0,col1).tolist();
+                        var col3=this.vertex.slice(null,[2,3]);
+                        this.vertex=nj.concatenate(col0,col1,col3).tolist();
 
 
                         for(let j=0;j<objectList[i].faces.length;j++)
                         {
                             var face=objectList[i].faces[j];
 
-                            //var fragment=pipeline.scanLine([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]]);
+                            var fragment=pipeline.scanLine([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]]);
 
-                            //for(let k=0;k<fragment.length;k++)
-                                //pipeline.drawPixel(fragment[k][0],fragment[k][1],"green");
+                            
 
-                            this.drawLine(this.vertex[face[0]],this.vertex[face[1]],"black");
-                            this.drawLine(this.vertex[face[0]],this.vertex[face[2]],"black");
-                            this.drawLine(this.vertex[face[1]],this.vertex[face[2]],"black");   
+                            // for(let k=0;k<fragment.length;k++)
+                            //     pipeline.drawPixel(fragment[k][0],fragment[k][1],"green");
+
+                            // this.drawLine(this.vertex[face[0]].slice(0,2),this.vertex[face[1]].slice(0,2),"black");
+                            // this.drawLine(this.vertex[face[0]].slice(0,2),this.vertex[face[2]].slice(0,2),"black");
+                            // this.drawLine(this.vertex[face[1]].slice(0,2),this.vertex[face[2]].slice(0,2),"black");   
                         }
+
+                        ctx.putImageData(this.imageData, 0, 0);
+                        //for(let i=0;i<this.vertex.length;i++)
+                           //ctx.fillText((i+1).toString(),this.vertex[i][0],this.vertex[i][1]);
                         
                     }
                 }
@@ -267,14 +311,11 @@
 
                     var teapot=new GameObject(vertex,faces);
                     teapot.scale=[10,10,10];
-                    teapot.position=[20,10,10];
+                    teapot.position=[20,10,0];
 
                     objectList.push(teapot);
 
                     pipeline.draw();
-
-                    //var vertexs=[pipeline.vertex[0],pipeline.vertex[1],pipeline.vertex[4]];
-                    //pipeline.scanLine(vertexs);
                 };
 
                 reader.readAsText(file);
