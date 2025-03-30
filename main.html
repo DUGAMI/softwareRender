@@ -15,12 +15,18 @@
             <input type="range" id="slider" min="0" max="360" value="0">
 
             <input type="file" id="fileInput">
+
+            <div>
+                <label for="slider">pointLight Yaxis</label>
+                <input type="range" id="pointLight" min="-50" max="50" value="20">
+            </div>
         </div>
 
         <script>
 
             //todo
             //rendering order,material,faces,cut,light
+            //scanLine->barycentric interpolate
 
             class GameObject
             {
@@ -38,6 +44,7 @@
             class RenderPipeline
             {
                 vertex=null;
+                vertexWorld=null;
 
                 P=null;
                 transfromScreenMatrix=null;
@@ -137,9 +144,65 @@
                     this.vertex=nj.dot(this.transfromScreenMatrix,this.vertex);
                 }
 
-
-                scanLine(vertexs)
+                generateNormalVector()
                 {
+                    //var normalVectors=Array.from({ length: this.vertex.shape[0] }, () => Array(this.vertex.shape[1]).fill(0));
+                    var vertex=this.vertex.T.tolist();
+
+                    //generate normal vector with face
+                    for(let i=0;i<objectList[0].faces.length;i++)
+                    {
+                        var face=objectList[0].faces[i];
+
+                        var A=vertex[face[0]];
+                        var B=vertex[face[1]];
+                        var C=vertex[face[2]];
+
+                        var AB=[B[0]-A[0],B[1]-A[1],B[2]-A[2]];
+                        var AC=[C[0]-A[0],C[1]-A[1],C[2]-A[2]];
+
+                        var normalVector=this.crossProduct(AB,AC);
+
+                        this.vertexNormals[face[0]]=vector3Add(this.vertexNormals[face[0]],normalVector);
+                        this.vertexNormals[face[1]]=vector3Add(this.vertexNormals[face[1]],normalVector);
+                        this.vertexNormals[face[2]]=vector3Add(this.vertexNormals[face[2]],normalVector);
+                    }
+
+                    //calculate noram vector of vertex(mean of normal vector)
+                    for(let i=0;i<this.vertexNormals.length;i++)
+                    {
+                        this.vertexNormals[i]=normalize([this.vertexNormals[i][0]/4,this.vertexNormals[i][1]/4,this.vertexNormals[i][2]/4]);
+                    }
+
+                }
+
+                barycentricInterpolate(vertexs,x,y)
+                {
+                    var lamadaA=((vertexs[1][1]-vertexs[2][1])*(x-vertexs[2][0])+(vertexs[2][0]-vertexs[1][0])*(y-vertexs[2][1]))/
+                                    ((vertexs[1][1]-vertexs[2][1])*(vertexs[0][0]-vertexs[2][0])+(vertexs[2][0]-vertexs[1][0])*(vertexs[0][1]-vertexs[2][1]));
+
+                    var lamadaB=((vertexs[2][1]-vertexs[0][1])*(x-vertexs[2][0])+(vertexs[0][0]-vertexs[2][0])*(y-vertexs[2][1]))/
+                                    ((vertexs[1][1]-vertexs[2][1])*(vertexs[0][0]-vertexs[2][0])+(vertexs[2][0]-vertexs[1][0])*(vertexs[0][1]-vertexs[2][1]));
+
+                    var lamadaC=1-lamadaA-lamadaB;
+
+
+                    return [lamadaA,lamadaB,lamadaC];
+                }
+
+                crossProduct(A,B)
+                {
+                    var cross=[(A[1]*B[2]-A[2]*B[1]),
+                                (A[2]*B[0]-A[0]*B[2]),
+                                (A[0]*B[1]-A[1]*B[0])];
+
+                    return normalize(cross);
+                }
+
+                scanLine(face)
+                {
+                    var vertexs=[this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]];
+
                     var facePixel=[];
 
                     var maxY=Math.max(vertexs[0][1],vertexs[1][1],vertexs[2][1]);
@@ -184,7 +247,19 @@
                                 if(z<this.ZBuffer[Math.round(scanY)][i])
                                 {
                                     this.ZBuffer[Math.round(scanY)][i]=z;
-                                    this.drawPixel(i,Math.round(scanY),Math.round(z*255));
+                                    
+                                    var lamada=this.barycentricInterpolate(vertexs,i,Math.round(scanY));
+                                    var perspectiveLamada=[lamada[0]/this.vertexWorld[face[0]][2],lamada[1]/this.vertexWorld[face[1]][2],lamada[2]/this.vertexWorld[face[2]][2]];
+                                    var sumLamada=perspectiveLamada[0]+perspectiveLamada[1]+perspectiveLamada[2];
+                                    perspectiveLamada=[perspectiveLamada[0]/sumLamada,perspectiveLamada[1]/sumLamada,perspectiveLamada[2]/sumLamada];
+
+                                    var normal=vector3Add(vector3Add(vector3multiply(this.vertexNormals[face[0]],perspectiveLamada[0]),vector3multiply(this.vertexNormals[face[1]],perspectiveLamada[1])),vector3multiply(this.vertexNormals[face[2]],perspectiveLamada[2]));
+                                    normal=normalize(normal);
+
+                                    var wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],perspectiveLamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],perspectiveLamada[1]),vector3multiply(this.vertexWorld[face[2]],perspectiveLamada[2])));
+                                    var lightDirection=normalize(vector3Add(pointLight,vector3multiply(wordPos,-1)));
+
+                                    this.drawPixel(i,Math.round(scanY),Math.max(0,vector3DotProduct(lightDirection,normal)*255));
                                 }
 
                                 facePixel.push([i,Math.round(scanY)]);
@@ -204,8 +279,14 @@
                     for(let i=0;i<objectList.length;i++)
                     {
                         this.vertex=nj.array(objectList[i].vertex).T;
+                        this.vertexNormals=Array.from({ length: this.vertex.shape[1] }, () => Array(this.vertex.shape[0]).fill(0));
 
                         this.transform(objectList[i]);
+                        this.vertexWorld=this.vertex.T.tolist();
+
+                        //nomarl vector
+                        this.generateNormalVector();
+
                         this.transformCamera();
                         this.transformScreen();
 
@@ -222,9 +303,8 @@
                         {
                             var face=objectList[i].faces[j];
 
-                            var fragment=pipeline.scanLine([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]]);
+                            var fragment=pipeline.scanLine(face);
 
-                            
 
                             // for(let k=0;k<fragment.length;k++)
                             //     pipeline.drawPixel(fragment[k][0],fragment[k][1],"green");
@@ -235,8 +315,8 @@
                         }
 
                         ctx.putImageData(this.imageData, 0, 0);
-                        //for(let i=0;i<this.vertex.length;i++)
-                           //ctx.fillText((i+1).toString(),this.vertex[i][0],this.vertex[i][1]);
+                        for(let i=0;i<this.vertex.length;i++)
+                           ctx.fillText((i).toString(),this.vertex[i][0],this.vertex[i][1]);
                         
                     }
                 }
@@ -244,6 +324,26 @@
 
             }
 
+            function vector3Add(A,B)
+            {
+                return [A[0]+B[0],A[1]+B[1],A[2]+B[2]];
+            }
+
+            function vector3DotProduct(A,B)
+            {
+                return A[0]*B[0]+A[1]*B[1]+A[2]*B[2];
+            }
+
+            function normalize(vector)
+            {
+                var norm=math.sqrt(vector[0]*vector[0]+vector[1]*vector[1]+vector[2]*vector[2]);
+                return [vector[0]/norm,vector[1]/norm,vector[2]/norm];
+            }
+
+            function vector3multiply(vector,a)
+            {
+                return [vector[0]*a,vector[1]*a,vector[2]*a];
+            }
          
 
             function lerp(a,b,alpha) 
@@ -259,16 +359,18 @@
             var sqr2=math.sqrt(2);
 
             //camera settings
-            var angleY=math.PI;
+            var angleY=0;
             var angleX=0;
             var angleZ=0;
 
             //view frustum parameters
-            var cameraPos=[20,20,-50];
+            var cameraPos=[0,20,50];
             var far=80;
             var near=10;
             var fovX=math.PI/2;
             var fovY=math.PI/2;
+
+            var pointLight=[0,20,20];
 
             var objectList=[];
             var pipeline=new RenderPipeline();
@@ -281,6 +383,12 @@
                 objectList[0].rotation[1] = slider.value/360;
                 pipeline.draw();
                 console.log("call input function");
+            });
+
+            slider2 = document.getElementById('pointLight');
+            slider2.addEventListener('input', function() {
+                pointLight[1] = Number(slider2.value);
+                pipeline.draw();
             });
             
             document.getElementById('fileInput').addEventListener('change', function(event) {
@@ -311,7 +419,8 @@
 
                     var teapot=new GameObject(vertex,faces);
                     teapot.scale=[10,10,10];
-                    teapot.position=[20,10,0];
+                    teapot.position=[0,0,0];
+                    
 
                     objectList.push(teapot);
 
