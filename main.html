@@ -18,7 +18,12 @@
 
             <div>
                 <label for="slider">pointLight Yaxis</label>
-                <input type="range" id="pointLight" min="-50" max="50" value="20">
+                <input type="range" id="pointLighty" min="-50" max="50" value="10">
+            </div>
+
+            <div>
+                <label for="slider">pointLight Zaxis</label>
+                <input type="range" id="pointLightz" min="20" max="100" value="20">
             </div>
         </div>
 
@@ -148,6 +153,7 @@
                 {
                     //var normalVectors=Array.from({ length: this.vertex.shape[0] }, () => Array(this.vertex.shape[1]).fill(0));
                     var vertex=this.vertex.T.tolist();
+                    var facePerVertex=Array(vertex.length).fill(0);
 
                     //generate normal vector with face
                     for(let i=0;i<objectList[0].faces.length;i++)
@@ -166,15 +172,34 @@
                         this.vertexNormals[face[0]]=vector3Add(this.vertexNormals[face[0]],normalVector);
                         this.vertexNormals[face[1]]=vector3Add(this.vertexNormals[face[1]],normalVector);
                         this.vertexNormals[face[2]]=vector3Add(this.vertexNormals[face[2]],normalVector);
+
+                        facePerVertex[face[0]]+=1;
+                        facePerVertex[face[1]]+=1;
+                        facePerVertex[face[2]]+=1;
                     }
 
                     //calculate noram vector of vertex(mean of normal vector)
                     for(let i=0;i<this.vertexNormals.length;i++)
                     {
-                        this.vertexNormals[i]=normalize([this.vertexNormals[i][0]/4,this.vertexNormals[i][1]/4,this.vertexNormals[i][2]/4]);
+                        this.vertexNormals[i]=normalize([this.vertexNormals[i][0]/facePerVertex[i],this.vertexNormals[i][1]/facePerVertex[i],this.vertexNormals[i][2]/facePerVertex[i]]);
                     }
 
                 }
+
+                generateVertexColor()
+                {
+                    this.vertexColor=[];
+
+                    for(let i=0;i<this.vertexWorld.length;i++)
+                    {
+                        var lightDirection=normalize(vector3Add(pointLight,vector3multiply(this.vertexWorld[i],-1)));
+                        var normalVector=this.vertexNormals[i];
+
+                        this.vertexColor.push(Math.max(0,vector3DotProduct(lightDirection,normalVector)*255));
+                    }
+
+                }
+
 
                 barycentricInterpolate(vertexs,x,y)
                 {
@@ -249,17 +274,37 @@
                                     this.ZBuffer[Math.round(scanY)][i]=z;
                                     
                                     var lamada=this.barycentricInterpolate(vertexs,i,Math.round(scanY));
-                                    var perspectiveLamada=[lamada[0]/this.vertexWorld[face[0]][2],lamada[1]/this.vertexWorld[face[1]][2],lamada[2]/this.vertexWorld[face[2]][2]];
-                                    var sumLamada=perspectiveLamada[0]+perspectiveLamada[1]+perspectiveLamada[2];
-                                    perspectiveLamada=[perspectiveLamada[0]/sumLamada,perspectiveLamada[1]/sumLamada,perspectiveLamada[2]/sumLamada];
+                                    //var perspectiveLamada=[lamada[0]/this.vertexWorld[face[0]][2],lamada[1]/this.vertexWorld[face[1]][2],lamada[2]/this.vertexWorld[face[2]][2]];
+                                    //var sumLamada=perspectiveLamada[0]+perspectiveLamada[1]+perspectiveLamada[2];
+                                    //perspectiveLamada=[perspectiveLamada[0]/sumLamada,perspectiveLamada[1]/sumLamada,perspectiveLamada[2]/sumLamada];
 
-                                    var normal=vector3Add(vector3Add(vector3multiply(this.vertexNormals[face[0]],perspectiveLamada[0]),vector3multiply(this.vertexNormals[face[1]],perspectiveLamada[1])),vector3multiply(this.vertexNormals[face[2]],perspectiveLamada[2]));
-                                    normal=normalize(normal);
+                                    var normalVector=vector3Add(vector3Add(vector3multiply(this.vertexNormals[face[0]],lamada[0]),vector3multiply(this.vertexNormals[face[1]],lamada[1])),vector3multiply(this.vertexNormals[face[2]],lamada[2]));
+                                    normalVector=normalize(normalVector);
 
-                                    var wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],perspectiveLamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],perspectiveLamada[1]),vector3multiply(this.vertexWorld[face[2]],perspectiveLamada[2])));
-                                    var lightDirection=normalize(vector3Add(pointLight,vector3multiply(wordPos,-1)));
+                                    // var worldX=1/(vector3DotProduct([1/this.vertexWorld[face[0]][0],1/this.vertexWorld[face[1]][0],1/this.vertexWorld[face[2]][0]],lamada));
+                                    // var worldY=1/(vector3DotProduct([1/this.vertexWorld[face[0]][1],1/this.vertexWorld[face[1]][1],1/this.vertexWorld[face[2]][1]],lamada));
+                                    // var worldZ=1/(vector3DotProduct([1/this.vertexWorld[face[0]][2],1/this.vertexWorld[face[1]][2],1/this.vertexWorld[face[2]][2]],lamada));
 
-                                    this.drawPixel(i,Math.round(scanY),Math.max(0,vector3DotProduct(lightDirection,normal)*255));
+
+                                    //var wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],lamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],lamada[1]),vector3multiply(this.vertexWorld[face[2]],lamada[2])));
+                                    //var wordPos=[worldX,worldY,worldZ];
+
+                                    // var worldX=(this.vertexWorld[face[0]][0]+this.vertexWorld[face[1]][0]+this.vertexWorld[face[2]][0])/3;
+                                    // var worldY=(this.vertexWorld[face[0]][1]+this.vertexWorld[face[1]][1]+this.vertexWorld[face[2]][1])/3;
+                                    // var worldZ=(this.vertexWorld[face[0]][2]+this.vertexWorld[face[1]][2]+this.vertexWorld[face[2]][2])/3;
+
+                                    // var wordPos=[worldX,worldY,worldZ];
+                                    //var lightDirection=normalize(vector3Add(pointLight,vector3multiply(wordPos,-1)));
+
+                                    // var normalX=1/vector3DotProduct([1/this.vertexNormals[face[0]][0],1/this.vertexNormals[face[1]][0],1/this.vertexNormals[face[2]][0]],lamada);
+                                    // var normalY=1/vector3DotProduct([1/this.vertexNormals[face[0]][1],1/this.vertexNormals[face[1]][1],1/this.vertexNormals[face[2]][1]],lamada);
+                                    // var normalZ=1/vector3DotProduct([1/this.vertexNormals[face[0]][2],1/this.vertexNormals[face[1]][2],1/this.vertexNormals[face[2]][2]],lamada);
+
+                                    // var normalVector=normalize([normalX,normalY,normalZ]);
+
+                                    //var color=vector3DotProduct([this.vertexColor[face[0]],this.vertexColor[face[1]],this.vertexColor[face[2]]],lamada);
+
+                                    this.drawPixel(i,Math.round(scanY),Math.max(0,vector3DotProduct(directionLight,normalVector)*255));
                                 }
 
                                 facePixel.push([i,Math.round(scanY)]);
@@ -286,6 +331,20 @@
 
                         //nomarl vector
                         this.generateNormalVector();
+                        
+
+                        // this.vertexNormals=[[0.577,-0.577,0.577],
+                        //                     [-0.577,-0.577,0.577],
+                        //                     [-0.577,-0.577,-0.577],
+                        //                     [0.577,-0.577,-0.577],
+                        //                     [0.577,0.577,0.577],
+                        //                     [-0.577,0.577,0.577],
+                        //                     [-0.577,0.577,-0.577],
+                        //                     [0.577,0.577,-0.577],
+                        //                 ];
+
+                        //this.generateVertexColor();
+
 
                         this.transformCamera();
                         this.transformScreen();
@@ -371,6 +430,7 @@
             var fovY=math.PI/2;
 
             var pointLight=[0,20,20];
+            var directionLight=normalize([-1,1,1]);
 
             var objectList=[];
             var pipeline=new RenderPipeline();
@@ -385,9 +445,15 @@
                 console.log("call input function");
             });
 
-            slider2 = document.getElementById('pointLight');
+            slider2 = document.getElementById('pointLighty');
             slider2.addEventListener('input', function() {
                 pointLight[1] = Number(slider2.value);
+                pipeline.draw();
+            });
+
+            slider3 = document.getElementById('pointLightz');
+            slider3.addEventListener('input', function() {
+                pointLight[2] = Number(slider3.value);
                 pipeline.draw();
             });
             
