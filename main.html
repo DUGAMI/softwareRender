@@ -5,10 +5,117 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/13.2.0/math.js"></script>
         <script src="https://cdn.jsdelivr.net/gh/nicolaspanel/numjs@0.15.1/dist/numjs.min.js"></script>
 
+        <style>
+            .main-window
+            {
+
+            }
+
+            .game-window
+            {
+                display: inline-block;
+
+                border-radius: 5px;
+                border-color: #ccc;
+                border-style: solid;
+                border-width: 2px;
+            }
+
+            .sidebar
+            {
+                display: inline-block;
+                vertical-align: top;
+
+                width: 250px;
+                height: 600px;
+
+                border-radius: 5px;
+                border-color: #ccc;
+                border-style: solid;
+                border-width: 2px;
+            }
+
+            .transfrom-bar
+            {
+                display: flex;
+                justify-content: space-between;
+                margin-left: 10px;
+                margin-right: 10px;
+            }
+
+            .input
+            {
+                width: 30px;
+            }
+
+        </style>
+
     </head>
     <body>
 
-        <canvas id="Canvas"></canvas>
+        <div class="main-window">
+            <div class="game-window">
+                <canvas id="Canvas"></canvas>
+            </div>
+            <div class="sidebar">
+
+                <div style="margin-bottom: 10px;">
+
+                    <span>Transfrom</span>
+
+                    <div class="transfrom-bar">
+
+                        <span>Position</span>
+
+                        <div style="display:inline-block;">
+                            <span>X</span><input class="input" id="PositionX">
+                            <span>Y</span><input class="input" id="PositionY">
+                            <span>Z</span><input class="input" id="PositionZ">
+                        </div>
+                    </div>
+
+                    <div class="transfrom-bar">
+
+                        <span>Rotation</span>
+
+                        <div style="display:inline-block;">
+                            <span>X</span><input class="input" id="RotationX">
+                            <span>Y</span><input class="input" id="RotationY">
+                            <span>Z</span><input class="input" id="RotationZ">
+                        </div>
+                    </div>
+
+                    <div class="transfrom-bar">
+
+                        <span>Scale</span>
+
+                        <div style="display:inline-block;">
+                            <span>X</span><input class="input" id="ScaleX">
+                            <span>Y</span><input class="input" id="ScaleY">
+                            <span>Z</span><input class="input" id="ScaleZ">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label for="slider">slide bar</label>
+                    <input type="range" id="slider" min="0" max="360" value="0">
+                </div>
+
+                
+                <div>
+                    <label for="slider">pointLight Yaxis</label>
+                    <input type="range" id="pointLighty" min="-50" max="50" value="10">
+                </div>
+    
+                <div>
+                    <label for="slider">pointLight Zaxis</label>
+                    <input type="range" id="pointLightz" min="20" max="100" value="20">
+                </div>
+
+
+            </div>
+        </div>
 
         <div>
             <label for="slider">Rotation Yaxis</label>
@@ -16,16 +123,6 @@
 
             <input type="file" id="fileInput">
             <input type="file" id="material">
-
-            <div>
-                <label for="slider">pointLight Yaxis</label>
-                <input type="range" id="pointLighty" min="-50" max="50" value="10">
-            </div>
-
-            <div>
-                <label for="slider">pointLight Zaxis</label>
-                <input type="range" id="pointLightz" min="20" max="100" value="20">
-            </div>
         </div>
 
         <script>
@@ -462,10 +559,24 @@
                 return [vector[0]*a,vector[1]*a];
             }
          
-
             function lerp(a,b,alpha) 
             {
                 return a+alpha*(b-a);
+            }
+
+            function setTransfrom(GameObject)
+            {
+                document.getElementById("PositionX").value=GameObject.position[0];
+                document.getElementById("PositionY").value=GameObject.position[1];
+                document.getElementById("PositionZ").value=GameObject.position[2];
+
+                document.getElementById("RotationX").value=GameObject.rotation[0];
+                document.getElementById("RotationY").value=GameObject.rotation[1];
+                document.getElementById("RotationZ").value=GameObject.rotation[2];
+
+                document.getElementById("ScaleX").value=GameObject.scale[0];
+                document.getElementById("ScaleY").value=GameObject.scale[1];
+                document.getElementById("ScaleZ").value=GameObject.scale[2];
             }
 
             const canvas = document.getElementById('Canvas');
@@ -518,6 +629,50 @@
                 pointLight[2] = Number(slider3.value);
                 pipeline.draw();
             });
+
+            var IDList=["PositionX","PositionY","PositionZ","RotationX","RotationY","RotationZ","ScaleX","ScaleY","ScaleZ"];
+            for(const ID of IDList)
+            {
+                document.getElementById(ID).addEventListener('input',function(event){
+                    var id=event.target.id;
+
+                    switch(id)
+                    {
+                        case "PositionX":
+                            objectList[0].position[0]=Number(document.getElementById("PositionX").value);
+                            break;
+                        case "PositionY":
+                            objectList[0].position[1]=Number(document.getElementById("PositionY").value);
+                            break;
+                        case "PositionZ":
+                            objectList[0].position[2]=Number(document.getElementById("PositionZ").value);
+                            break;
+                        case "RotationX":
+                            objectList[0].rotation[0]=Number(document.getElementById("RotationX").value);
+                            break;
+                        case "RotationY":
+                            objectList[0].rotation[1]=Number(document.getElementById("RotationY").value);
+                            break;
+                        case "RotationZ":
+                            objectList[0].rotation[2]=Number(document.getElementById("RotationZ").value);
+                            break;
+                        case "ScaleX":
+                            objectList[0].scale[0]=Number(document.getElementById("ScaleX").value);
+                            break;
+                        case "ScaleY":
+                            objectList[0].scale[1]=Number(document.getElementById("ScaleY").value);
+                            break;
+                        case "ScaleZ":
+                            objectList[0].scale[2]=Number(document.getElementById("ScaleZ").value);
+                            break;
+                    }
+
+                    console.log("input");
+
+                    pipeline.draw();
+
+                });
+            }
             
             document.getElementById('fileInput').addEventListener('change', function(event) {
 
@@ -561,8 +716,8 @@
                     var teapot=new GameObject(vertex,faces);
                     teapot.scale=[10,10,10];
                     teapot.position=[0,0,0];
-                    
 
+                    setTransfrom(teapot);
                     objectList.push(teapot);
 
                     pipeline.draw();
