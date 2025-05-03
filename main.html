@@ -337,12 +337,21 @@
                                     //var wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],lamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],lamada[1]),vector3multiply(this.vertexWorld[face[2]],lamada[2])));
                                     //var lightDirection=normalize(vector3Add(pointLight,vector3multiply(wordPos,-1)));
 
+                                    var wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],lamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],lamada[1]),vector3multiply(this.vertexWorld[face[2]],lamada[2])));
+                                    var cameraDirection=normalize(vector3Add(cameraPos,vector3multiply(wordPos,-1)));
+                                    var halfVector=normalize(vector3Add(directionLight,cameraDirection));
+
+                                    var Ambient=[32,32,32];
+                                    var Diffuse=vector3multiply([0,188,212],Math.max(0,vector3DotProduct(normalVector,directionLight)));
+                                    var Specular=vector3multiply([255,255,255],Math.pow(Math.max(0,vector3DotProduct(normalVector,halfVector)),256));
+                                    
 
                                     //var color=vector3DotProduct([this.vertexColor[face[0]],this.vertexColor[face[1]],this.vertexColor[face[2]]],lamada);
                                     //Math.max(0,vector3DotProduct(directionLight,this.faceNormalVectors[index])*255)
 
                                     //this.drawPixel(i,Math.round(scanY),Math.max(0,vector3DotProduct(normalVector,directionLight)*255));
-                                    this.drawPixelRGB(i,scanY,vector3multiply([255,255,255],Math.max(0,vector3DotProduct(this.faceNormalVectors[index],directionLight))));
+                                    //this.drawPixelRGB(i,scanY,vector3multiply([255,255,255],Math.max(0,vector3DotProduct(this.faceNormalVectors[index],directionLight))));
+                                    this.drawPixelRGB(i,scanY,vector3Add(vector3Add(Ambient,Diffuse),Specular));
                                     //this.drawPixelRGB(i,Math.round(scanY),[200,200,200]);
                                 }
 
