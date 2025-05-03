@@ -98,7 +98,7 @@
                 </div>
 
                 <div style="margin-bottom: 10px;">
-                    <label for="slider">slide bar</label>
+                    <label for="slider" id="sliderTitle">slide bar</label>
                     <input type="range" id="slider" min="0" max="360" value="0">
                 </div>
 
@@ -611,13 +611,6 @@
             canvas.setAttribute("width",canvasWidth);
             canvas.setAttribute("height",canvasHeight);
 
-            slider = document.getElementById('slider');
-            slider.addEventListener('input', function() {
-                objectList[0].rotation[1] = slider.value/360;
-                pipeline.draw();
-                console.log("call input function");
-            });
-
             slider2 = document.getElementById('pointLighty');
             slider2.addEventListener('input', function() {
                 pointLight[1] = Number(slider2.value);
@@ -631,48 +624,69 @@
             });
 
             var IDList=["PositionX","PositionY","PositionZ","RotationX","RotationY","RotationZ","ScaleX","ScaleY","ScaleZ"];
+
+            var transfromTable={
+                "PositionX":(value)=>{objectList[0].position[0]=Number(value);},
+                "PositionY":(value)=>{objectList[0].position[1]=Number(value);},
+                "PositionZ":(value)=>{objectList[0].position[2]=Number(value);},
+                "RotationX":(value)=>{objectList[0].rotation[0]=Number(value);},
+                "RotationY":(value)=>{objectList[0].rotation[1]=Number(value);},
+                "RotationZ":(value)=>{objectList[0].rotation[2]=Number(value);},
+                "ScaleX":(value)=>{objectList[0].scale[0]=Number(value);},
+                "ScaleY":(value)=>{objectList[0].scale[1]=Number(value);},
+                "ScaleZ":(value)=>{objectList[0].scale[2]=Number(value);},
+            }
+
             for(const ID of IDList)
             {
-                document.getElementById(ID).addEventListener('input',function(event){
+                var transformInput=document.getElementById(ID);
+
+                transformInput.addEventListener('input',function(event){
                     var id=event.target.id;
 
-                    switch(id)
-                    {
-                        case "PositionX":
-                            objectList[0].position[0]=Number(document.getElementById("PositionX").value);
-                            break;
-                        case "PositionY":
-                            objectList[0].position[1]=Number(document.getElementById("PositionY").value);
-                            break;
-                        case "PositionZ":
-                            objectList[0].position[2]=Number(document.getElementById("PositionZ").value);
-                            break;
-                        case "RotationX":
-                            objectList[0].rotation[0]=Number(document.getElementById("RotationX").value);
-                            break;
-                        case "RotationY":
-                            objectList[0].rotation[1]=Number(document.getElementById("RotationY").value);
-                            break;
-                        case "RotationZ":
-                            objectList[0].rotation[2]=Number(document.getElementById("RotationZ").value);
-                            break;
-                        case "ScaleX":
-                            objectList[0].scale[0]=Number(document.getElementById("ScaleX").value);
-                            break;
-                        case "ScaleY":
-                            objectList[0].scale[1]=Number(document.getElementById("ScaleY").value);
-                            break;
-                        case "ScaleZ":
-                            objectList[0].scale[2]=Number(document.getElementById("ScaleZ").value);
-                            break;
-                    }
-
-                    console.log("input");
+                    transfromTable[id](document.getElementById(id).value);
 
                     pipeline.draw();
 
                 });
+
+                function setSlideBar(event)
+                {
+                    document.getElementById("sliderTitle").innerText=ID;
+                    var slideBar=document.getElementById("slider");
+
+                    if(ID.includes("Rotation"))
+                    {
+                        slideBar.setAttribute("min",-360);
+                        slideBar.setAttribute("max",360);
+                        slideBar.setAttribute("value",document.getElementById(ID).value);
+                    }
+                    else
+                    {
+                        slideBar.setAttribute("min",-100);
+                        slideBar.setAttribute("max",100);
+                        slideBar.setAttribute("value",document.getElementById(ID).value);
+                    }
+                }
+
+                transformInput.addEventListener("click",setSlideBar);
+                transformInput.previousElementSibling.addEventListener("click",setSlideBar);
             }
+
+            slider = document.getElementById('slider');
+            slider.addEventListener('input', function(event) {
+
+                var id=slider.previousElementSibling.innerText;
+
+                if(id.includes("Rotation"))
+                    transfromTable[id](slider.value/360);
+                else
+                    transfromTable[id](slider.value);
+
+                document.getElementById(id).value=slider.value;
+                pipeline.draw();
+                console.log("call input function");
+            });
             
             document.getElementById('fileInput').addEventListener('change', function(event) {
 
