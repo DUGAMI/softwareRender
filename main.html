@@ -118,9 +118,6 @@
         </div>
 
         <div>
-            <label for="slider">Rotation Yaxis</label>
-            <input type="range" id="slider" min="0" max="360" value="0">
-
             <input type="file" id="fileInput">
             <input type="file" id="material">
         </div>
@@ -232,11 +229,27 @@
                                      [0,0,0,1]]);
                 }
 
+                RotationX(angle)
+                {
+                    return nj.array([[1,0,0,0],
+                                     [0,math.cos(angle),-math.sin(angle),0],
+                                     [0,math.sin(angle),math.cos(angle),0],
+                                     [0,0,0,1]]);
+                }
+
                 RotationY(angle)
                 {
                     return nj.array([[math.cos(angle),0,math.sin(angle),0],
                                      [0,1,0,0],
                                      [-math.sin(angle),0,math.cos(angle),0],
+                                     [0,0,0,1]]);
+                }
+
+                RotationZ(angle)
+                {
+                    return nj.array([[math.cos(angle),-math.sin(angle),0,0],
+                                     [math.sin(angle),math.cos(angle),0,0],
+                                     [0,0,1,0],
                                      [0,0,0,1]]);
                 }
 
@@ -259,7 +272,12 @@
                 transform(object)
                 {
                     var S=this.Scale(object.scale[0],object.scale[1],object.scale[2]);
-                    var R=this.RotationY(lerp(0,2*math.PI,object.rotation[1]));
+
+                    var Rx=this.RotationX((object.rotation[0]/360)*2*math.PI);
+                    var Ry=this.RotationY((object.rotation[1]/360)*2*math.PI);
+                    var Rz=this.RotationZ((object.rotation[2]/360)*2*math.PI);
+                    var R=nj.dot(Rz,nj.dot(Ry,Rx));
+
                     var T=this.translation(object.position[0],object.position[1],object.position[2]);
 
                     var transfromMatrix=nj.dot(T,nj.dot(R,S));
@@ -679,7 +697,7 @@
                 var id=slider.previousElementSibling.innerText;
 
                 if(id.includes("Rotation"))
-                    transfromTable[id](slider.value/360);
+                    transfromTable[id](slider.value);
                 else
                     transfromTable[id](slider.value);
 
