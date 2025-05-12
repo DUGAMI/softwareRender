@@ -34,4 +34,27 @@ function lerp(a,b,alpha)
     return a+alpha*(b-a);
 }
 
-export { vector3Add, vector2Add, vector3DotProduct, normalize, vector3multiply, vector2multiply, lerp};
+function barycentricInterpolate(vertexs,x,y)
+{
+    var lamadaA=((vertexs[1][1]-vertexs[2][1])*(x-vertexs[2][0])+(vertexs[2][0]-vertexs[1][0])*(y-vertexs[2][1]))/
+                    ((vertexs[1][1]-vertexs[2][1])*(vertexs[0][0]-vertexs[2][0])+(vertexs[2][0]-vertexs[1][0])*(vertexs[0][1]-vertexs[2][1]));
+
+    var lamadaB=((vertexs[2][1]-vertexs[0][1])*(x-vertexs[2][0])+(vertexs[0][0]-vertexs[2][0])*(y-vertexs[2][1]))/
+                    ((vertexs[1][1]-vertexs[2][1])*(vertexs[0][0]-vertexs[2][0])+(vertexs[2][0]-vertexs[1][0])*(vertexs[0][1]-vertexs[2][1]));
+
+    var lamadaC=1-lamadaA-lamadaB;
+
+
+    return [lamadaA,lamadaB,lamadaC];
+}
+
+function crossProduct(A,B)
+{
+    var cross=[(A[1]*B[2]-A[2]*B[1]),
+                (A[2]*B[0]-A[0]*B[2]),
+                (A[0]*B[1]-A[1]*B[0])];
+
+    return normalize(cross);
+}
+
+export {vector3Add, vector2Add, vector3DotProduct, normalize, vector3multiply, vector2multiply, lerp, barycentricInterpolate, crossProduct};
