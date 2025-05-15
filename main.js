@@ -1,4 +1,5 @@
 import {vector3Add, vector2Add, vector3DotProduct, normalize, vector3multiply, vector2multiply, lerp, barycentricInterpolate, crossProduct} from './math.js';
+import {input} from './input.js';
 
 //todo
 //pixel  selector
@@ -95,49 +96,49 @@ class RenderPipeline
     translation(x,y,z)
     {
         return nj.array([[1,0,0,x],
-                            [0,1,0,y],
-                            [0,0,1,z],
-                            [0,0,0,1]]);
+                        [0,1,0,y],
+                        [0,0,1,z],
+                        [0,0,0,1]]);
     }
 
     RotationX(angle)
     {
         return nj.array([[1,0,0,0],
-                            [0,math.cos(angle),-math.sin(angle),0],
-                            [0,math.sin(angle),math.cos(angle),0],
-                            [0,0,0,1]]);
+                        [0,math.cos(angle),-math.sin(angle),0],
+                        [0,math.sin(angle),math.cos(angle),0],
+                        [0,0,0,1]]);
     }
 
     RotationY(angle)
     {
         return nj.array([[math.cos(angle),0,math.sin(angle),0],
-                            [0,1,0,0],
-                            [-math.sin(angle),0,math.cos(angle),0],
-                            [0,0,0,1]]);
+                        [0,1,0,0],
+                        [-math.sin(angle),0,math.cos(angle),0],
+                        [0,0,0,1]]);
     }
 
     RotationZ(angle)
     {
         return nj.array([[math.cos(angle),-math.sin(angle),0,0],
-                            [math.sin(angle),math.cos(angle),0,0],
-                            [0,0,1,0],
-                            [0,0,0,1]]);
+                        [math.sin(angle),math.cos(angle),0,0],
+                        [0,0,1,0],
+                        [0,0,0,1]]);
     }
 
     Scale(x,y,z)
     {
         return nj.array([[x,0,0,0],
-                            [0,y,0,0],
-                            [0,0,z,0],
-                            [0,0,0,1]]);
+                        [0,y,0,0],
+                        [0,0,z,0],
+                        [0,0,0,1]]);
     }
 
     Projection()
     {
         return nj.array([[1/math.tan(fovX/2),0,0,0],
-                            [0,1/math.tan(fovY/2),0,0],
-                            [0,0,-(far+near)/(far-near),-(2*far*near)/(far-near)],
-                            [0,0,-1,0]]);
+                        [0,1/math.tan(fovY/2),0,0],
+                        [0,0,-(far+near)/(far-near),-(2*far*near)/(far-near)],
+                        [0,0,-1,0]]);
     } 
 
     transform(object)
@@ -440,18 +441,6 @@ var pipeline=new RenderPipeline();
 canvas.setAttribute("width",canvasWidth);
 canvas.setAttribute("height",canvasHeight);
 
-var slider2 = document.getElementById('pointLighty');
-slider2.addEventListener('input', function() {
-    pointLight[1] = Number(slider2.value);
-    pipeline.draw();
-});
-
-var slider3 = document.getElementById('pointLightz');
-slider3.addEventListener('input', function() {
-    pointLight[2] = Number(slider3.value);
-    pipeline.draw();
-});
-
 var IDList=["PositionX","PositionY","PositionZ","RotationX","RotationY","RotationZ","ScaleX","ScaleY","ScaleZ"];
 
 var transfromTable={
@@ -469,163 +458,14 @@ var transfromTable={
 for(const ID of IDList)
 {
     var transformInput=document.getElementById(ID);
-
-    transformInput.addEventListener('input',function(event){
-        var id=event.target.id;
-
-        transfromTable[id](document.getElementById(id).value);
-
-        pipeline.draw();
-
-    });
-
-    function setSlideBar(event)
-    {
-        document.getElementById("sliderTitle").innerText=ID;
-        var slideBar=document.getElementById("slider");
-
-        if(ID.includes("Rotation"))
-        {
-            slideBar.setAttribute("min",-360);
-            slideBar.setAttribute("max",360);
-            slideBar.setAttribute("value",document.getElementById(ID).value);
-        }
-        else
-        {
-            slideBar.setAttribute("min",-100);
-            slideBar.setAttribute("max",100);
-            slideBar.setAttribute("value",document.getElementById(ID).value);
-        }
-    }
-
-    transformInput.addEventListener("click",setSlideBar);
-    transformInput.previousElementSibling.addEventListener("click",setSlideBar);
+    transformInput.addEventListener('input',input.inputTransform);
+    transformInput.addEventListener("click",input.setSlideBar);
+    transformInput.previousElementSibling.addEventListener("click",input.setSlideBar);
 }
 
-var slider = document.getElementById('slider');
-slider.addEventListener('input', function(event) {
+document.getElementById('slider').addEventListener('input', input.setValueWithSlider);
+document.getElementById('fileInput').addEventListener('change',input.readObjFile);
+document.getElementById('material').addEventListener('change',input.readTextureFile);
 
-    var id=slider.previousElementSibling.innerText;
+canvas.addEventListener('click',input.drawFace);
 
-    if(id.includes("Rotation"))
-        transfromTable[id](slider.value);
-    else
-        transfromTable[id](slider.value);
-
-    document.getElementById(id).value=slider.value;
-    pipeline.draw();
-    console.log("call input function");
-});
-
-document.getElementById('fileInput').addEventListener('change', function(event) {
-
-const file = event.target.files[0];
-if (file) {
-    const reader = new FileReader();
-    
-    reader.onload = function(e) 
-    {
-        //console.log(e.target.result); // 文件内容
-
-        var result=e.target.result;
-        var lines=result.split("\n");
-
-        var vertex=[];
-        var faces=[];
-
-        for(let i=0;i<lines.length;i++)
-        {
-            var data=lines[i].split(" ");
-            
-            if(data[0]=='v')
-                vertex.push([Number(data[1]),Number(data[2]),Number(data[3]),1]);
-            else if(data[0]=='f')
-                {
-                    if(data.length-1==3)
-                    {
-                        if(data[1].includes("/"))
-                            faces.push([Number(data[1].split("/")[0])-1,Number(data[2].split("/")[0])-1,Number(data[3].split("/")[0])-1]);
-                        else
-                            faces.push([Number(data[1])-1,Number(data[2])-1,Number(data[3])-1]);
-                    }
-                    else if(data.length-1==4)
-                    {
-                        faces.push([Number(data[1].split("/")[0])-1,Number(data[2].split("/")[0])-1,Number(data[3].split("/")[0])-1]);
-                        faces.push([Number(data[1].split("/")[0])-1,Number(data[3].split("/")[0])-1,Number(data[4].split("/")[0])-1]);
-                    }
-                }
-        }
-
-        var teapot=new GameObject(vertex,faces);
-        teapot.scale=[10,10,10];
-        teapot.position=[0,0,0];
-
-        setTransfrom(teapot);
-        objectList.push(teapot);
-
-        pipeline.draw();
-    };
-
-    reader.readAsText(file);
-
-}
-});
-
-canvas.addEventListener('click', function(event) {
-
-    const rect = canvas.getBoundingClientRect();
-
-    var x=event.clientX - rect.left;
-    var y=event.clientY - rect.top;
-
-    console.log(`x:${x},y:${y}`);
-
-    faceID=pipeline.IDBuffer[y][x];
-
-    vertexID1=objectList[0].faces[faceID][0];
-    vertexID2=objectList[0].faces[faceID][1];
-    vertexID3=objectList[0].faces[faceID][2];
-
-    console.log(`vertex1:${vertexID1},vertex2:${vertexID2},vertex3:${vertexID3},faceID:${faceID}`);
-
-    pipeline.drawLine(pipeline.vertex[vertexID1].slice(0,2),pipeline.vertex[vertexID2].slice(0,2),"black");
-    pipeline.drawLine(pipeline.vertex[vertexID1].slice(0,2),pipeline.vertex[vertexID3].slice(0,2),"black");
-    pipeline.drawLine(pipeline.vertex[vertexID2].slice(0,2),pipeline.vertex[vertexID3].slice(0,2),"black");
-
-    pipeline.scanLine(objectList[0].faces[faceID],faceID); 
-
-});
-
-// document.getElementById('material').addEventListener('change', function(event) {
-
-//     const file = event.target.files[0];
-//     if (!file) return;
-
-//     const canvas = document.createElement('canvas');
-//     const reader = new FileReader();
-
-//     reader.onload = function(e) {
-
-//         const img = new Image();
-//         img.onload = function() {
-
-//             const ctx = canvas.getContext('2d');
-//             canvas.width = img.width;
-//             canvas.height = img.height;
-
-//             // 绘制图片到Canvas
-//             ctx.drawImage(img, 0, 0);
-
-//             // 获取像素数据
-//             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-//             textureData = imageData.data;
-//             textureWidth=img.width;
-//             textureHeight=img.height;
-
-//         };
-//         img.src = e.target.result;
-//     };
-
-//     reader.readAsDataURL(file);
-// });
