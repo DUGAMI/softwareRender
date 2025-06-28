@@ -409,63 +409,82 @@ function setTransfrom(GameObject)
     document.getElementById("ScaleZ").value=GameObject.scale[2];
 }
 
-const canvas = document.getElementById('Canvas');
-const ctx = canvas.getContext('2d');
-
-var canvasWidth=800;
-var canvasHeight=600;
-var sqr2=math.sqrt(2);
-
-//camera settings
-var angleY=0;
-var angleX=0;
-var angleZ=0;
-
-//view frustum parameters
-var cameraPos=[0,20,50];
-var far=80;
-var near=10;
-var fovX=math.PI/2;
-var fovY=math.PI/2;
-
-//light settings
-var pointLight=[0,20,20];
-var directionLight=normalize([-1,1,1]);
-
-var objectList=[];
-var textureData=[];
-var textureWidth;
-var textureHeight;
-var pipeline=new RenderPipeline();
-
-canvas.setAttribute("width",canvasWidth);
-canvas.setAttribute("height",canvasHeight);
-
-var IDList=["PositionX","PositionY","PositionZ","RotationX","RotationY","RotationZ","ScaleX","ScaleY","ScaleZ"];
-
-var transfromTable={
-    "PositionX":(value)=>{objectList[0].position[0]=Number(value);},
-    "PositionY":(value)=>{objectList[0].position[1]=Number(value);},
-    "PositionZ":(value)=>{objectList[0].position[2]=Number(value);},
-    "RotationX":(value)=>{objectList[0].rotation[0]=Number(value);},
-    "RotationY":(value)=>{objectList[0].rotation[1]=Number(value);},
-    "RotationZ":(value)=>{objectList[0].rotation[2]=Number(value);},
-    "ScaleX":(value)=>{objectList[0].scale[0]=Number(value);},
-    "ScaleY":(value)=>{objectList[0].scale[1]=Number(value);},
-    "ScaleZ":(value)=>{objectList[0].scale[2]=Number(value);},
-}
-
-for(const ID of IDList)
+class Main
 {
-    var transformInput=document.getElementById(ID);
-    transformInput.addEventListener('input',input.inputTransform);
-    transformInput.addEventListener("click",input.setSlideBar);
-    transformInput.previousElementSibling.addEventListener("click",input.setSlideBar);
+    static getInstance()
+    {
+        if (!SingleDog.instance)
+        {
+            Main.instance = new Main()
+        }
+
+        return Main.instance
+    }
+
+    constructor()
+    {
+        this.canvasWidth=800;
+        this.canvasHeight=600;
+        this.sqr2=math.sqrt(2);
+
+        //camera settings
+        this.angleY=0;
+        this.angleX=0;
+        this.angleZ=0;
+
+        //view frustum parameters
+        this.cameraPos=[0,20,50];
+        this.far=80;
+        this.near=10;
+        this.fovX=math.PI/2;
+        this.fovY=math.PI/2;
+
+        //light settings
+        this.pointLight=[0,20,20];
+        this.directionLight=normalize([-1,1,1]);
+
+        this.objectList=[];
+        this.textureData=[];
+        this.textureWidth;
+        this.textureHeight;
+        this.pipeline=new RenderPipeline();
+
+        this.canvas = document.getElementById('Canvas');
+        this.ctx = canvas.getContext('2d');
+
+        this.canvas.setAttribute("width",canvasWidth);
+        this.canvas.setAttribute("height",canvasHeight);
+
+        this.IDList=["PositionX","PositionY","PositionZ","RotationX","RotationY","RotationZ","ScaleX","ScaleY","ScaleZ"];
+
+        this.transfromTable={
+            "PositionX":(value)=>{objectList[0].position[0]=Number(value);},
+            "PositionY":(value)=>{objectList[0].position[1]=Number(value);},
+            "PositionZ":(value)=>{objectList[0].position[2]=Number(value);},
+            "RotationX":(value)=>{objectList[0].rotation[0]=Number(value);},
+            "RotationY":(value)=>{objectList[0].rotation[1]=Number(value);},
+            "RotationZ":(value)=>{objectList[0].rotation[2]=Number(value);},
+            "ScaleX":(value)=>{objectList[0].scale[0]=Number(value);},
+            "ScaleY":(value)=>{objectList[0].scale[1]=Number(value);},
+            "ScaleZ":(value)=>{objectList[0].scale[2]=Number(value);},
+        }
+
+        for(const ID of this.IDList)
+        {
+            var transformInput=document.getElementById(ID);
+            transformInput.addEventListener('input',input.inputTransform);
+            transformInput.addEventListener("click",input.setSlideBar);
+            transformInput.previousElementSibling.addEventListener("click",input.setSlideBar);
+        }
+
+        document.getElementById('slider').addEventListener('input', input.setValueWithSlider);
+        document.getElementById('fileInput').addEventListener('change',input.readObjFile);
+        document.getElementById('material').addEventListener('change',input.readTextureFile);
+
+        this.canvas.addEventListener('click',input.drawFace);
+
+    }
 }
 
-document.getElementById('slider').addEventListener('input', input.setValueWithSlider);
-document.getElementById('fileInput').addEventListener('change',input.readObjFile);
-document.getElementById('material').addEventListener('change',input.readTextureFile);
-
-canvas.addEventListener('click',input.drawFace);
-
+var main=Main.getInstance();
+window.main=main;
