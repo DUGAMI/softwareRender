@@ -1,5 +1,5 @@
 import {vector3Add, vector2Add, vector3DotProduct, normalize, vector3multiply, vector2multiply, lerp, barycentricInterpolate, crossProduct} from './math.js';
-import {input} from './input.js';
+import {Input} from './input.js';
 
 //todo
 //pixel  selector
@@ -28,22 +28,46 @@ class RenderPipeline
     ZBuffer=null;
     imageData=null;
     buffer=null;
+    ctx=null;
 
     //transfromMatrix=null;
     vertexUV=null;
 
+    cameraPos=null;
+    far=0;
+    near=0;
+    fovX=0;
+    fovY=0;
+
+    pointLight=null;
+    directionLight=null;
+
     constructor()
     {
+        this.canvasWidth=main.canvasWidth;
+        this.canvasHeight=main.canvasHeight;
+
+        this.cameraPos=main.cameraPos;
+        this.far=main.far;
+        this.near=main.near;
+        this.fovX=main.fovX;
+        this.fovY=main.fovY;
+
+        this.pointLight=main.pointLight;
+        this.directionLight=main.directionLight;
+
+
+        this.ctx=main.ctx;
         this.P=this.Projection();
-        this.transfromScreenMatrix=nj.dot(this.Scale(canvasWidth/2,canvasHeight/2,1),this.translation(1,1,0));
-        this.transformCameraMatrix=nj.dot(this.Projection(),nj.dot(this.RotationY(-angleY),this.translation(-cameraPos[0],-cameraPos[1],-cameraPos[2])));
-        this.ZBuffer=Array.from({ length: canvasHeight }, () => Array(canvasWidth).fill(1));
-        this.IDBuffer=Array.from({ length: canvasHeight }, () => Array(canvasWidth).fill(1));
+        this.transfromScreenMatrix=nj.dot(this.Scale(this.canvasWidth/2,this.canvasHeight/2,1),this.translation(1,1,0));
+        this.transformCameraMatrix=nj.dot(this.Projection(),nj.dot(this.RotationY(-main.angleY),this.translation(-this.cameraPos[0],-this.cameraPos[1],-this.cameraPos[2])));
+        this.ZBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(1));
+        this.IDBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(1));
         this.faceNormalVectors=Array.from({ length: 12 }, () => Array(3).fill(0));
         this.vertexUV=Array.from({ length: 8 }, () => Array(2).fill(0));
         //this.faceUV=Array.from({ length: 12 }, () => Array(2).fill(0));
 
-        this.imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+        this.imageData = this.ctx.getImageData(0, 0, this.canvasWidth, this.canvasHeight);
         this.buffer = this.imageData.data;
 
         this.vertexUV=[[0.5,0.5],[0,0.5],[0.5,0.5],[0,0.5],[0.5,0],[0,0],[0.5,0],[0,0]];
@@ -64,7 +88,7 @@ class RenderPipeline
     // Function to draw a pixel
     drawPixel(x, y, color) {
 
-        var index = (y * canvasWidth + x) * 4;
+        var index = (y * this.canvasWidth + x) * 4;
         this.buffer[index] = color;   // R
         this.buffer[index + 1] = color; // G
         this.buffer[index + 2] = color;   // B
@@ -73,7 +97,7 @@ class RenderPipeline
 
     drawPixelRGB(x, y, color){
 
-        var index = (y * canvasWidth + x) * 4;
+        var index = (y * this.canvasWidth + x) * 4;
         this.buffer[index] = color[0];   // R
         this.buffer[index + 1] = color[1]; // G
         this.buffer[index + 2] = color[2];   // B
@@ -85,12 +109,12 @@ class RenderPipeline
 
     drawLine(v1,v2,color)
     {
-        ctx.strokeStyle=color
+        this.ctx.strokeStyle=color
         
-        ctx.beginPath();
-        ctx.moveTo(v1[0], v1[1]);
-        ctx.lineTo(v2[0], v2[1]);
-        ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(v1[0], v1[1]);
+        this.ctx.lineTo(v2[0], v2[1]);
+        this.ctx.stroke();
     }
 
     translation(x,y,z)
@@ -135,9 +159,9 @@ class RenderPipeline
 
     Projection()
     {
-        return nj.array([[1/math.tan(fovX/2),0,0,0],
-                        [0,1/math.tan(fovY/2),0,0],
-                        [0,0,-(far+near)/(far-near),-(2*far*near)/(far-near)],
+        return nj.array([[1/math.tan(this.fovX/2),0,0,0],
+                        [0,1/math.tan(this.fovY/2),0,0],
+                        [0,0,-(this.far+this.near)/(this.far-this.near),-(2*this.far*this.near)/(this.far-this.near)],
                         [0,0,-1,0]]);
     } 
 
@@ -179,9 +203,9 @@ class RenderPipeline
         var facePerVertex=Array(vertex.length).fill(0);
 
         //generate normal vector with face
-        for(let i=0;i<objectList[0].faces.length;i++)
+        for(let i=0;i<main.objectList[0].faces.length;i++)
         {
-            var face=objectList[0].faces[i];
+            var face=main.objectList[0].faces[i];
 
             var A=vertex[face[0]];
             var B=vertex[face[1]];
@@ -301,11 +325,11 @@ class RenderPipeline
                         //var lightDirection=normalize(vector3Add(pointLight,vector3multiply(wordPos,-1)));
 
                         var wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],lamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],lamada[1]),vector3multiply(this.vertexWorld[face[2]],lamada[2])));
-                        var cameraDirection=normalize(vector3Add(cameraPos,vector3multiply(wordPos,-1)));
-                        var halfVector=normalize(vector3Add(directionLight,cameraDirection));
+                        var cameraDirection=normalize(vector3Add(this.cameraPos,vector3multiply(wordPos,-1)));
+                        var halfVector=normalize(vector3Add(this.directionLight,cameraDirection));
 
                         var Ambient=[32,32,32];
-                        var Diffuse=vector3multiply([0,188,212],Math.max(0,vector3DotProduct(normalVector,directionLight)));
+                        var Diffuse=vector3multiply([0,188,212],Math.max(0,vector3DotProduct(normalVector,this.directionLight)));
                         var Specular=vector3multiply([255,255,255],Math.pow(Math.max(0,vector3DotProduct(normalVector,halfVector)),256));
                         
 
@@ -330,14 +354,14 @@ class RenderPipeline
     {
         //ctx.clearRect(0,0,canvasWidth,canvasHeight);
         this.buffer.fill(0);
-        this.ZBuffer=Array.from({ length: canvasHeight }, () => Array(canvasWidth).fill(1));
+        this.ZBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(1));
 
-        for(let i=0;i<objectList.length;i++)
+        for(let i=0;i<main.objectList.length;i++)
         {
-            this.vertex=nj.array(objectList[i].vertex).T;
+            this.vertex=nj.array(main.objectList[i].vertex).T;
             this.vertexNormals=Array.from({ length: this.vertex.shape[1] }, () => Array(this.vertex.shape[0]).fill(0));
 
-            this.transform(objectList[i]);
+            this.transform(main.objectList[i]);
             this.vertexWorld=this.vertex.T.tolist();
 
             //nomarl vector
@@ -364,16 +388,16 @@ class RenderPipeline
 
             //取xy坐标
             var col0=this.vertex.slice(null,[0,1]);
-            var col1=nj.subtract(nj.ones([this.vertex.shape[0],1]).multiply(canvasHeight),this.vertex.slice(null,[1,2]));
+            var col1=nj.subtract(nj.ones([this.vertex.shape[0],1]).multiply(this.canvasHeight),this.vertex.slice(null,[1,2]));
             var col3=this.vertex.slice(null,[2,3]);
             this.vertex=nj.concatenate(col0,col1,col3).tolist();
 
 
-            for(let j=0;j<objectList[i].faces.length;j++)
+            for(let j=0;j<main.objectList[i].faces.length;j++)
             {
-                var face=objectList[i].faces[j];
+                var face=main.objectList[i].faces[j];
 
-                var fragment=pipeline.scanLine(face,j);
+                var fragment=this.scanLine(face,j);
 
 
                 // for(let k=0;k<fragment.length;k++)
@@ -384,7 +408,7 @@ class RenderPipeline
                 // this.drawLine(this.vertex[face[1]].slice(0,2),this.vertex[face[2]].slice(0,2),"black");   
             }
 
-            ctx.putImageData(this.imageData, 0, 0);
+            this.ctx.putImageData(this.imageData, 0, 0);
             //for(let i=0;i<this.vertex.length;i++)
                 //ctx.fillText((i).toString(),this.vertex[i][0],this.vertex[i][1]);
             
@@ -394,26 +418,11 @@ class RenderPipeline
 
 }
 
-function setTransfrom(GameObject)
-{
-    document.getElementById("PositionX").value=GameObject.position[0];
-    document.getElementById("PositionY").value=GameObject.position[1];
-    document.getElementById("PositionZ").value=GameObject.position[2];
-
-    document.getElementById("RotationX").value=GameObject.rotation[0];
-    document.getElementById("RotationY").value=GameObject.rotation[1];
-    document.getElementById("RotationZ").value=GameObject.rotation[2];
-
-    document.getElementById("ScaleX").value=GameObject.scale[0];
-    document.getElementById("ScaleY").value=GameObject.scale[1];
-    document.getElementById("ScaleZ").value=GameObject.scale[2];
-}
-
 class Main
 {
     static getInstance()
     {
-        if (!SingleDog.instance)
+        if (!Main.instance)
         {
             Main.instance = new Main()
         }
@@ -447,44 +456,49 @@ class Main
         this.textureData=[];
         this.textureWidth;
         this.textureHeight;
-        this.pipeline=new RenderPipeline();
 
         this.canvas = document.getElementById('Canvas');
-        this.ctx = canvas.getContext('2d');
+        this.ctx = this.canvas.getContext('2d');
 
-        this.canvas.setAttribute("width",canvasWidth);
-        this.canvas.setAttribute("height",canvasHeight);
+        this.canvas.setAttribute("width",this.canvasWidth);
+        this.canvas.setAttribute("height",this.canvasHeight);
 
         this.IDList=["PositionX","PositionY","PositionZ","RotationX","RotationY","RotationZ","ScaleX","ScaleY","ScaleZ"];
 
         this.transfromTable={
-            "PositionX":(value)=>{objectList[0].position[0]=Number(value);},
-            "PositionY":(value)=>{objectList[0].position[1]=Number(value);},
-            "PositionZ":(value)=>{objectList[0].position[2]=Number(value);},
-            "RotationX":(value)=>{objectList[0].rotation[0]=Number(value);},
-            "RotationY":(value)=>{objectList[0].rotation[1]=Number(value);},
-            "RotationZ":(value)=>{objectList[0].rotation[2]=Number(value);},
-            "ScaleX":(value)=>{objectList[0].scale[0]=Number(value);},
-            "ScaleY":(value)=>{objectList[0].scale[1]=Number(value);},
-            "ScaleZ":(value)=>{objectList[0].scale[2]=Number(value);},
+            "PositionX":(value)=>{this.objectList[0].position[0]=Number(value);},
+            "PositionY":(value)=>{this.objectList[0].position[1]=Number(value);},
+            "PositionZ":(value)=>{this.objectList[0].position[2]=Number(value);},
+            "RotationX":(value)=>{this.objectList[0].rotation[0]=Number(value);},
+            "RotationY":(value)=>{this.objectList[0].rotation[1]=Number(value);},
+            "RotationZ":(value)=>{this.objectList[0].rotation[2]=Number(value);},
+            "ScaleX":(value)=>{this.objectList[0].scale[0]=Number(value);},
+            "ScaleY":(value)=>{this.objectList[0].scale[1]=Number(value);},
+            "ScaleZ":(value)=>{this.objectList[0].scale[2]=Number(value);},
         }
 
-        for(const ID of this.IDList)
-        {
-            var transformInput=document.getElementById(ID);
-            transformInput.addEventListener('input',input.inputTransform);
-            transformInput.addEventListener("click",input.setSlideBar);
-            transformInput.previousElementSibling.addEventListener("click",input.setSlideBar);
-        }
+    }
 
-        document.getElementById('slider').addEventListener('input', input.setValueWithSlider);
-        document.getElementById('fileInput').addEventListener('change',input.readObjFile);
-        document.getElementById('material').addEventListener('change',input.readTextureFile);
-
-        this.canvas.addEventListener('click',input.drawFace);
-
+    genGameObject(vertex,faces)
+    {
+        return new GameObject(vertex,faces);
     }
 }
 
 var main=Main.getInstance();
 window.main=main;
+main.pipeline=new RenderPipeline();
+
+for(const ID of main.IDList)
+{
+    var transformInput=document.getElementById(ID);
+    transformInput.addEventListener('input',Input.inputTransform);
+    transformInput.addEventListener("click",Input.setSlideBar);
+    transformInput.previousElementSibling.addEventListener("click",Input.setSlideBar);
+}
+
+document.getElementById('slider').addEventListener('input', Input.setValueWithSlider);
+document.getElementById('fileInput').addEventListener('change', Input.readObjFile);
+document.getElementById('material').addEventListener('change', Input.readTextureFile);
+
+main.canvas.addEventListener('click', Input.drawFace);

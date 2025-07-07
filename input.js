@@ -1,19 +1,20 @@
-export {input};
+export {Input};
 
-class input
+class Input
 {
 
     static inputTransform(event){
         var id=event.target.id;
 
-        transfromTable[id](document.getElementById(id).value);
+        window.main.transfromTable[id](document.getElementById(id).value);
 
-        pipeline.draw();
+        window.main.pipeline.draw();
 
     }
 
     static setSlideBar(event)
     {
+
         document.getElementById("sliderTitle").innerText=ID;
         var slideBar=document.getElementById("slider");
 
@@ -36,12 +37,12 @@ class input
         var id=slider.previousElementSibling.innerText;
 
         if(id.includes("Rotation"))
-            transfromTable[id](slider.value);
+            window.main.transfromTable[id](slider.value);
         else
-            transfromTable[id](slider.value);
+            window.main.transfromTable[id](slider.value);
 
         document.getElementById(id).value=slider.value;
-        pipeline.draw();
+        window.main.pipeline.draw();
         console.log("call input function");
     }
 
@@ -84,14 +85,14 @@ class input
                         }
                 }
 
-                var teapot=new GameObject(vertex,faces);
+                var teapot=window.main.genGameObject(vertex,faces);
                 teapot.scale=[10,10,10];
                 teapot.position=[0,0,0];
 
-                setTransfrom(teapot);
-                objectList.push(teapot);
+                Input.setTransfrom(teapot);
+                window.main.objectList.push(teapot);
 
-                pipeline.draw();
+                window.main.pipeline.draw();
             };
 
             reader.readAsText(file);
@@ -99,30 +100,45 @@ class input
         }
     }
 
+    static setTransfrom(GameObject)
+    {
+        document.getElementById("PositionX").value=GameObject.position[0];
+        document.getElementById("PositionY").value=GameObject.position[1];
+        document.getElementById("PositionZ").value=GameObject.position[2];
+
+        document.getElementById("RotationX").value=GameObject.rotation[0];
+        document.getElementById("RotationY").value=GameObject.rotation[1];
+        document.getElementById("RotationZ").value=GameObject.rotation[2];
+
+        document.getElementById("ScaleX").value=GameObject.scale[0];
+        document.getElementById("ScaleY").value=GameObject.scale[1];
+        document.getElementById("ScaleZ").value=GameObject.scale[2];
+    }
+
     //debug function:select a face and draw it with polygon
     static drawFace(event) 
     {
 
-        const rect = canvas.getBoundingClientRect();
+        const rect = window.main.canvas.getBoundingClientRect();
 
         var x=event.clientX - rect.left;
         var y=event.clientY - rect.top;
 
         console.log(`x:${x},y:${y}`);
 
-        faceID=pipeline.IDBuffer[y][x];
+        faceID=window.main.pipeline.IDBuffer[y][x];
 
-        vertexID1=objectList[0].faces[faceID][0];
-        vertexID2=objectList[0].faces[faceID][1];
-        vertexID3=objectList[0].faces[faceID][2];
+        vertexID1=window.main.objectList[0].faces[faceID][0];
+        vertexID2=window.main.objectList[0].faces[faceID][1];
+        vertexID3=window.main.objectList[0].faces[faceID][2];
 
         console.log(`vertex1:${vertexID1},vertex2:${vertexID2},vertex3:${vertexID3},faceID:${faceID}`);
 
-        pipeline.drawLine(pipeline.vertex[vertexID1].slice(0,2),pipeline.vertex[vertexID2].slice(0,2),"black");
-        pipeline.drawLine(pipeline.vertex[vertexID1].slice(0,2),pipeline.vertex[vertexID3].slice(0,2),"black");
-        pipeline.drawLine(pipeline.vertex[vertexID2].slice(0,2),pipeline.vertex[vertexID3].slice(0,2),"black");
+        window.main.pipeline.drawLine(window.main.pipeline.vertex[vertexID1].slice(0,2),window.main.pipeline.vertex[vertexID2].slice(0,2),"black");
+        window.main.pipeline.drawLine(window.main.pipeline.vertex[vertexID1].slice(0,2),window.main.pipeline.vertex[vertexID3].slice(0,2),"black");
+        window.main.pipeline.drawLine(window.main.pipeline.vertex[vertexID2].slice(0,2),window.main.pipeline.vertex[vertexID3].slice(0,2),"black");
 
-        pipeline.scanLine(objectList[0].faces[faceID],faceID); 
+        window.main.pipeline.scanLine(window.main.objectList[0].faces[faceID],faceID);
 
     }
 
@@ -139,15 +155,15 @@ class input
             const img = new Image();
             img.onload = function() {
 
-                const ctx = canvas.getContext('2d');
-                canvas.width = img.width;
-                canvas.height = img.height;
+                const ctx = window.main.canvas.getContext('2d');
+                window.main.canvas.width = img.width;
+                window.main.canvas.height = img.height;
 
                 // 绘制图片到Canvas
                 ctx.drawImage(img, 0, 0);
 
                 // 获取像素数据
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, window.main.canvas.width, window.main.canvas.height);
 
                 textureData = imageData.data;
                 textureWidth=img.width;
