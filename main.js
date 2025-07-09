@@ -459,6 +459,7 @@ class Main
 
         this.canvas = document.getElementById('Canvas');
         this.ctx = this.canvas.getContext('2d');
+        this.slider= document.getElementById('slider');
 
         this.canvas.setAttribute("width",this.canvasWidth);
         this.canvas.setAttribute("height",this.canvasHeight);
@@ -489,12 +490,12 @@ var main=Main.getInstance();
 window.main=main;
 main.pipeline=new RenderPipeline();
 
+//事件处理代码
 for(const ID of main.IDList)
 {
     var transformInput=document.getElementById(ID);
-    transformInput.addEventListener('input',Input.inputTransform);
+    transformInput.childNodes[1].addEventListener('input',Input.inputTransform);
     transformInput.addEventListener("click",Input.setSlideBar);
-    transformInput.previousElementSibling.addEventListener("click",Input.setSlideBar);
 }
 
 document.getElementById('slider').addEventListener('input', Input.setValueWithSlider);

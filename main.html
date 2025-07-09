@@ -44,6 +44,11 @@
                 margin-right: 10px;
             }
 
+            .transform-panel
+            {
+                display: inline-block
+            }
+
             .input
             {
                 width: 30px;
@@ -68,10 +73,10 @@
 
                         <span>Position</span>
 
-                        <div style="display:inline-block;">
-                            <span>X</span><input class="input" id="PositionX">
-                            <span>Y</span><input class="input" id="PositionY">
-                            <span>Z</span><input class="input" id="PositionZ">
+                        <div class="transform-panel">
+                            <div class="transform-panel" id="PositionX"><span>X</span><input class="input"></div>
+                            <div class="transform-panel" id="PositionY"><span>Y</span><input class="input"></div>
+                            <div class="transform-panel" id="PositionZ"><span>Z</span><input class="input"></div>
                         </div>
                     </div>
 
@@ -79,10 +84,10 @@
 
                         <span>Rotation</span>
 
-                        <div style="display:inline-block;">
-                            <span>X</span><input class="input" id="RotationX">
-                            <span>Y</span><input class="input" id="RotationY">
-                            <span>Z</span><input class="input" id="RotationZ">
+                        <div class="transform-panel">
+                            <div class="transform-panel" id="RotationX"><span>X</span><input class="input"></div>
+                            <div class="transform-panel" id="RotationY"><span>Y</span><input class="input"></div>
+                            <div class="transform-panel" id="RotationZ"><span>Z</span><input class="input"></div>
                         </div>
                     </div>
 
@@ -90,10 +95,10 @@
 
                         <span>Scale</span>
 
-                        <div style="display:inline-block;">
-                            <span>X</span><input class="input" id="ScaleX">
-                            <span>Y</span><input class="input" id="ScaleY">
-                            <span>Z</span><input class="input" id="ScaleZ">
+                        <div class="transform-panel">
+                            <div class="transform-panel" id="ScaleX"><span>X</span><input class="input"></div>
+                            <div class="transform-panel" id="ScaleY"><span>Y</span><input class="input"></div>
+                            <div class="transform-panel" id="ScaleZ"><span>Z</span><input class="input"></div>
                         </div>
                     </div>
                 </div>

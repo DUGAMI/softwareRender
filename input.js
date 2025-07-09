@@ -2,19 +2,20 @@ export {Input};
 
 class Input
 {
+    //transform panel的值改变时重绘画面
+    static inputTransform(event)
+    {
+        var id=event.target.parentElement.id;
 
-    static inputTransform(event){
-        var id=event.target.id;
-
-        window.main.transfromTable[id](document.getElementById(id).value);
+        window.main.transfromTable[id](event.target.value);
 
         window.main.pipeline.draw();
-
     }
 
+    //点击transfrom panel的具体属性时，把transfrom panel下面的滑动条更改为对应属性的滑动条
     static setSlideBar(event)
     {
-
+        var ID=this.id;
         document.getElementById("sliderTitle").innerText=ID;
         var slideBar=document.getElementById("slider");
 
@@ -22,26 +23,27 @@ class Input
         {
             slideBar.setAttribute("min",-360);
             slideBar.setAttribute("max",360);
-            slideBar.setAttribute("value",document.getElementById(ID).value);
+            slideBar.setAttribute("value",document.getElementById(ID).childNodes[1].value);
         }
         else
         {
             slideBar.setAttribute("min",-100);
             slideBar.setAttribute("max",100);
-            slideBar.setAttribute("value",document.getElementById(ID).value);
+            slideBar.setAttribute("value",document.getElementById(ID).childNodes[1].value);
         }
     }
 
+    //滑动条的值改变时，更改transfrom panel对应属性的值
     static setValueWithSlider(event) 
     {
-        var id=slider.previousElementSibling.innerText;
+        var id=window.main.slider.previousElementSibling.innerText;
 
         if(id.includes("Rotation"))
             window.main.transfromTable[id](slider.value);
         else
             window.main.transfromTable[id](slider.value);
 
-        document.getElementById(id).value=slider.value;
+        document.getElementById(id).childNodes[1].value=slider.value;
         window.main.pipeline.draw();
         console.log("call input function");
     }
@@ -100,19 +102,20 @@ class Input
         }
     }
 
+    //设置transform panel的值
     static setTransfrom(GameObject)
     {
-        document.getElementById("PositionX").value=GameObject.position[0];
-        document.getElementById("PositionY").value=GameObject.position[1];
-        document.getElementById("PositionZ").value=GameObject.position[2];
+        document.getElementById("PositionX").childNodes[1].value=GameObject.position[0];
+        document.getElementById("PositionY").childNodes[1].value=GameObject.position[1];
+        document.getElementById("PositionZ").childNodes[1].value=GameObject.position[2];
 
-        document.getElementById("RotationX").value=GameObject.rotation[0];
-        document.getElementById("RotationY").value=GameObject.rotation[1];
-        document.getElementById("RotationZ").value=GameObject.rotation[2];
+        document.getElementById("RotationX").childNodes[1].value=GameObject.rotation[0];
+        document.getElementById("RotationY").childNodes[1].value=GameObject.rotation[1];
+        document.getElementById("RotationZ").childNodes[1].value=GameObject.rotation[2];
 
-        document.getElementById("ScaleX").value=GameObject.scale[0];
-        document.getElementById("ScaleY").value=GameObject.scale[1];
-        document.getElementById("ScaleZ").value=GameObject.scale[2];
+        document.getElementById("ScaleX").childNodes[1].value=GameObject.scale[0];
+        document.getElementById("ScaleY").childNodes[1].value=GameObject.scale[1];
+        document.getElementById("ScaleZ").childNodes[1].value=GameObject.scale[2];
     }
 
     //debug function:select a face and draw it with polygon
