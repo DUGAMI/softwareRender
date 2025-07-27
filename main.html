@@ -36,6 +36,12 @@
                 border-width: 2px;
             }
 
+            .option-block
+            {
+                margin-top:10px;
+                margin-bottom:10px;
+            }
+
             .transfrom-bar
             {
                 display: flex;
@@ -67,38 +73,71 @@
 
                 <div style="margin-bottom: 10px;">
 
-                    <span>Transfrom</span>
+                    <div class="option-block">
+                        <span>Render Option</span>
 
-                    <div class="transfrom-bar">
+                        <div class="transfrom-bar">
 
-                        <span>Position</span>
+                            <div class="transform-panel">
 
-                        <div class="transform-panel">
-                            <div class="transform-panel" id="PositionX"><span>X</span><input class="input"></div>
-                            <div class="transform-panel" id="PositionY"><span>Y</span><input class="input"></div>
-                            <div class="transform-panel" id="PositionZ"><span>Z</span><input class="input"></div>
+                                    <div>
+                                        <input type="checkbox" id="DepthMap" name="DepthMap"/>
+                                        <label for="DepthMap">Depth Map</label>
+                                    </div>
+                                    
+                                    <div>
+                                        <input type="checkbox" id="FlatShading" name="FlatShading"/>
+                                        <label for="FlatShading">Flat Shading</label>
+                                    </div>
+
+                                    <div>
+                                        <input type="checkbox" id="GouraudShading" name="GouraudShading"/>
+                                        <label for="GouraudShading">Gouraud Shading</label>
+                                    </div>
+
+                                    <div>
+                                        <input type="checkbox" id="PhongShading" name="PhongShading"/>
+                                        <label for="PhongShading">Phong Shading</label>
+                                    </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="transfrom-bar">
 
-                        <span>Rotation</span>
+                    <div class="option-block">
+                        <span>Transfrom</span>
 
-                        <div class="transform-panel">
-                            <div class="transform-panel" id="RotationX"><span>X</span><input class="input"></div>
-                            <div class="transform-panel" id="RotationY"><span>Y</span><input class="input"></div>
-                            <div class="transform-panel" id="RotationZ"><span>Z</span><input class="input"></div>
+                        <div class="transfrom-bar">
+
+                            <span>Position</span>
+
+                            <div class="transform-panel">
+                                <div class="transform-panel" id="PositionX"><span>X</span><input class="input"></div>
+                                <div class="transform-panel" id="PositionY"><span>Y</span><input class="input"></div>
+                                <div class="transform-panel" id="PositionZ"><span>Z</span><input class="input"></div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="transfrom-bar">
+                        <div class="transfrom-bar">
 
-                        <span>Scale</span>
+                            <span>Rotation</span>
 
-                        <div class="transform-panel">
-                            <div class="transform-panel" id="ScaleX"><span>X</span><input class="input"></div>
-                            <div class="transform-panel" id="ScaleY"><span>Y</span><input class="input"></div>
-                            <div class="transform-panel" id="ScaleZ"><span>Z</span><input class="input"></div>
+                            <div class="transform-panel">
+                                <div class="transform-panel" id="RotationX"><span>X</span><input class="input"></div>
+                                <div class="transform-panel" id="RotationY"><span>Y</span><input class="input"></div>
+                                <div class="transform-panel" id="RotationZ"><span>Z</span><input class="input"></div>
+                            </div>
+                        </div>
+
+                        <div class="transfrom-bar">
+
+                            <span>Scale</span>
+
+                            <div class="transform-panel">
+                                <div class="transform-panel" id="ScaleX"><span>X</span><input class="input"></div>
+                                <div class="transform-panel" id="ScaleY"><span>Y</span><input class="input"></div>
+                                <div class="transform-panel" id="ScaleZ"><span>Z</span><input class="input"></div>
+                            </div>
                         </div>
                     </div>
                 </div>

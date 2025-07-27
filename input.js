@@ -9,7 +9,24 @@ class Input
 
         window.main.transfromTable[id](event.target.value);
 
+        if(document.getElementById("sliderTitle").innerText!="slide bar")
+            document.getElementById("slider").value=event.target.value;
+
         window.main.pipeline.draw();
+    }
+
+    static DepthMap()
+    {
+        if(document.getElementById("DepthMap").checked)
+        {
+            window.main.pipeline.drawingMode=window.main.pipeline.drawDepthMap;
+        }
+        else
+        {
+            window.main.pipeline.drawingMode=window.main.pipeline.draw;
+        }
+
+        window.main.pipeline.drawingMode();
     }
 
     //点击transfrom panel的具体属性时，把transfrom panel下面的滑动条更改为对应属性的滑动条
@@ -23,13 +40,13 @@ class Input
         {
             slideBar.setAttribute("min",-360);
             slideBar.setAttribute("max",360);
-            slideBar.setAttribute("value",document.getElementById(ID).childNodes[1].value);
+            slideBar.value=document.getElementById(ID).childNodes[1].value;
         }
         else
         {
             slideBar.setAttribute("min",-100);
             slideBar.setAttribute("max",100);
-            slideBar.setAttribute("value",document.getElementById(ID).childNodes[1].value);
+            slideBar.value=document.getElementById(ID).childNodes[1].value;
         }
     }
 
@@ -44,7 +61,7 @@ class Input
             window.main.transfromTable[id](slider.value);
 
         document.getElementById(id).childNodes[1].value=slider.value;
-        window.main.pipeline.draw();
+        window.main.pipeline.drawingMode();
         console.log("call input function");
     }
 
@@ -129,11 +146,11 @@ class Input
 
         console.log(`x:${x},y:${y}`);
 
-        faceID=window.main.pipeline.IDBuffer[y][x];
+        var faceID=window.main.pipeline.IDBuffer[y][x];
 
-        vertexID1=window.main.objectList[0].faces[faceID][0];
-        vertexID2=window.main.objectList[0].faces[faceID][1];
-        vertexID3=window.main.objectList[0].faces[faceID][2];
+        var vertexID1=window.main.objectList[0].faces[faceID][0];
+        var vertexID2=window.main.objectList[0].faces[faceID][1];
+        var vertexID3=window.main.objectList[0].faces[faceID][2];
 
         console.log(`vertex1:${vertexID1},vertex2:${vertexID2},vertex3:${vertexID3},faceID:${faceID}`);
 

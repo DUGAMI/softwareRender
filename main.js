@@ -56,6 +56,7 @@ class RenderPipeline
         this.pointLight=main.pointLight;
         this.directionLight=main.directionLight;
 
+        this.drawingMode=this.draw
 
         this.ctx=main.ctx;
         this.P=this.Projection();
@@ -350,6 +351,22 @@ class RenderPipeline
         return facePixel;
     }
 
+    //split depthTest code from scanLine
+    depthTest(fragment)
+    {   
+
+    }
+
+    //split shading code from scanLine
+    blinnPhongShading()
+    {
+        //calculate normal vector
+        //calculate light direction
+        //calculate half vector
+        //calculate ambient, diffuse, specular
+        //draw pixel with color
+    }
+
     draw()
     {
         //ctx.clearRect(0,0,canvasWidth,canvasHeight);
@@ -408,6 +425,9 @@ class RenderPipeline
                 // this.drawLine(this.vertex[face[1]].slice(0,2),this.vertex[face[2]].slice(0,2),"black");   
             }
 
+            this.depthTest()
+            this.blinnPhongShading();
+
             this.ctx.putImageData(this.imageData, 0, 0);
             //for(let i=0;i<this.vertex.length;i++)
                 //ctx.fillText((i).toString(),this.vertex[i][0],this.vertex[i][1]);
@@ -415,6 +435,80 @@ class RenderPipeline
         }
     }
 
+    drawDepthMap()
+    {
+         //ctx.clearRect(0,0,canvasWidth,canvasHeight);
+        this.buffer.fill(0);
+        this.ZBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(1));
+
+        for(let i=0;i<main.objectList.length;i++)
+        {
+            this.vertex=nj.array(main.objectList[i].vertex).T;
+            this.vertexNormals=Array.from({ length: this.vertex.shape[1] }, () => Array(this.vertex.shape[0]).fill(0));
+
+            this.transform(main.objectList[i]);
+            this.vertexWorld=this.vertex.T.tolist();
+
+            //nomarl vector
+            this.generateNormalVector();
+            
+
+            // this.vertexNormals=[[0.577,-0.577,0.577],
+            //                     [-0.577,-0.577,0.577],
+            //                     [-0.577,-0.577,-0.577],
+            //                     [0.577,-0.577,-0.577],
+            //                     [0.577,0.577,0.577],
+            //                     [-0.577,0.577,0.577],
+            //                     [-0.577,0.577,-0.577],
+            //                     [0.577,0.577,-0.577],
+            //                 ];
+
+            //this.generateVertexColor();
+
+
+            this.transformCamera();
+            this.transformScreen();
+
+            this.vertex=this.vertex.T;
+
+            //取xy坐标
+            var col0=this.vertex.slice(null,[0,1]);
+            var col1=nj.subtract(nj.ones([this.vertex.shape[0],1]).multiply(this.canvasHeight),this.vertex.slice(null,[1,2]));
+            var col3=this.vertex.slice(null,[2,3]);
+            this.vertex=nj.concatenate(col0,col1,col3).tolist();
+
+
+            for(let j=0;j<main.objectList[i].faces.length;j++)
+            {
+                var face=main.objectList[i].faces[j];
+
+                var fragment=this.scanLine(face,j);
+
+
+                // for(let k=0;k<fragment.length;k++)
+                //     pipeline.drawPixel(fragment[k][0],fragment[k][1],"green");
+
+                // this.drawLine(this.vertex[face[0]].slice(0,2),this.vertex[face[1]].slice(0,2),"black");
+                // this.drawLine(this.vertex[face[0]].slice(0,2),this.vertex[face[2]].slice(0,2),"black");
+                // this.drawLine(this.vertex[face[1]].slice(0,2),this.vertex[face[2]].slice(0,2),"black");   
+            }
+
+            for(let y=0;y<this.canvasHeight;y++)
+            {
+                for(let x=0;x<this.canvasWidth;x++)
+                {
+                    var depthValue=this.ZBuffer[y][x];
+                    var colorValue=Math.floor((1-depthValue)*255);
+                    this.drawPixelRGB(x,y,[colorValue,colorValue,colorValue]);
+                }
+            }
+
+            this.ctx.putImageData(this.imageData, 0, 0);
+            //for(let i=0;i<this.vertex.length;i++)
+                //ctx.fillText((i).toString(),this.vertex[i][0],this.vertex[i][1]);
+            
+        }
+    }
 
 }
 
@@ -501,5 +595,6 @@ for(const ID of main.IDList)
 document.getElementById('slider').addEventListener('input', Input.setValueWithSlider);
 document.getElementById('fileInput').addEventListener('change', Input.readObjFile);
 document.getElementById('material').addEventListener('change', Input.readTextureFile);
+document.getElementById('DepthMap').addEventListener('change', Input.DepthMap);
 
 main.canvas.addEventListener('click', Input.drawFace);
