@@ -63,7 +63,7 @@ class RenderPipeline
         this.transfromScreenMatrix=nj.dot(this.Scale(this.canvasWidth/2,this.canvasHeight/2,1),this.translation(1,1,0));
         this.transformCameraMatrix=nj.dot(this.Projection(),nj.dot(this.RotationY(-main.angleY),this.translation(-this.cameraPos[0],-this.cameraPos[1],-this.cameraPos[2])));
         this.ZBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(1));
-        this.IDBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(1));
+        this.IDBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(-1));
         this.faceNormalVectors=Array.from({ length: 12 }, () => Array(3).fill(0));
         this.vertexUV=Array.from({ length: 8 }, () => Array(2).fill(0));
         //this.faceUV=Array.from({ length: 12 }, () => Array(2).fill(0));
@@ -264,7 +264,7 @@ class RenderPipeline
         return [R,G,B];
     }
 
-    scanLine(face,index)
+    scanLine(face)
     {
         var vertexs=[this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]];
 
@@ -307,43 +307,7 @@ class RenderPipeline
                 for(let i=xleft;i<=xRight;i++)
                 {
                     var z=1/(zleft + (i-xleft) * (zRight - zleft) / (xRight - xleft));
-
-                    //update ZBuffer
-                    if(z<this.ZBuffer[scanY][i])
-                    {
-                        this.ZBuffer[scanY][i]=z;
-                        this.IDBuffer[scanY][i]=index;
-                        
-                        var lamada=barycentricInterpolate(vertexs,i,scanY);
-
-                        var normalVector=vector3Add(vector3Add(vector3multiply(this.vertexNormals[face[0]],lamada[0]),vector3multiply(this.vertexNormals[face[1]],lamada[1])),vector3multiply(this.vertexNormals[face[2]],lamada[2]));
-                        normalVector=normalize(normalVector);
-
-                        // var uv=vector2Add(vector2multiply(this.faceUV[index][0],lamada[0]),vector2Add(vector2multiply(this.faceUV[index][1],lamada[1]),vector2multiply(this.faceUV[index][2],lamada[2])));
-                        // var color=this.textureSample(textureData,uv);
-
-                        //var wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],lamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],lamada[1]),vector3multiply(this.vertexWorld[face[2]],lamada[2])));
-                        //var lightDirection=normalize(vector3Add(pointLight,vector3multiply(wordPos,-1)));
-
-                        var wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],lamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],lamada[1]),vector3multiply(this.vertexWorld[face[2]],lamada[2])));
-                        var cameraDirection=normalize(vector3Add(this.cameraPos,vector3multiply(wordPos,-1)));
-                        var halfVector=normalize(vector3Add(this.directionLight,cameraDirection));
-
-                        var Ambient=[32,32,32];
-                        var Diffuse=vector3multiply([0,188,212],Math.max(0,vector3DotProduct(normalVector,this.directionLight)));
-                        var Specular=vector3multiply([255,255,255],Math.pow(Math.max(0,vector3DotProduct(normalVector,halfVector)),256));
-                        
-
-                        //var color=vector3DotProduct([this.vertexColor[face[0]],this.vertexColor[face[1]],this.vertexColor[face[2]]],lamada);
-                        //Math.max(0,vector3DotProduct(directionLight,this.faceNormalVectors[index])*255)
-
-                        //this.drawPixel(i,Math.round(scanY),Math.max(0,vector3DotProduct(normalVector,directionLight)*255));
-                        //this.drawPixelRGB(i,scanY,vector3multiply([255,255,255],Math.max(0,vector3DotProduct(this.faceNormalVectors[index],directionLight))));
-                        this.drawPixelRGB(i,scanY,vector3Add(vector3Add(Ambient,Diffuse),Specular));
-                        //this.drawPixelRGB(i,Math.round(scanY),[200,200,200]);
-                    }
-
-                    facePixel.push([i,scanY]);
+                    facePixel.push([i,scanY,z]);
                 }
             }
         }
@@ -352,9 +316,21 @@ class RenderPipeline
     }
 
     //split depthTest code from scanLine
-    depthTest(fragment)
+    depthTest(fragment,index)
     {   
+        for(let pixel of fragment)
+        {
+            let i=pixel[0];
+            let scanY=pixel[1];
+            let z=pixel[2];
 
+            //update ZBuffer
+            if(z<this.ZBuffer[scanY][i])
+            {
+                this.ZBuffer[scanY][i]=z;
+                this.IDBuffer[scanY][i]=index;
+            }
+        }
     }
 
     //split shading code from scanLine
@@ -373,12 +349,12 @@ class RenderPipeline
         this.buffer.fill(0);
         this.ZBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(1));
 
-        for(let i=0;i<main.objectList.length;i++)
+        for(let objectIndex=0;objectIndex<main.objectList.length;objectIndex++)
         {
-            this.vertex=nj.array(main.objectList[i].vertex).T;
+            this.vertex=nj.array(main.objectList[objectIndex].vertex).T;
             this.vertexNormals=Array.from({ length: this.vertex.shape[1] }, () => Array(this.vertex.shape[0]).fill(0));
 
-            this.transform(main.objectList[i]);
+            this.transform(main.objectList[objectIndex]);
             this.vertexWorld=this.vertex.T.tolist();
 
             //nomarl vector
@@ -410,25 +386,43 @@ class RenderPipeline
             this.vertex=nj.concatenate(col0,col1,col3).tolist();
 
 
-            for(let j=0;j<main.objectList[i].faces.length;j++)
+            for(let j=0;j<main.objectList[objectIndex].faces.length;j++)
             {
-                var face=main.objectList[i].faces[j];
-
-                var fragment=this.scanLine(face,j);
-
-
-                // for(let k=0;k<fragment.length;k++)
-                //     pipeline.drawPixel(fragment[k][0],fragment[k][1],"green");
-
-                // this.drawLine(this.vertex[face[0]].slice(0,2),this.vertex[face[1]].slice(0,2),"black");
-                // this.drawLine(this.vertex[face[0]].slice(0,2),this.vertex[face[2]].slice(0,2),"black");
-                // this.drawLine(this.vertex[face[1]].slice(0,2),this.vertex[face[2]].slice(0,2),"black");   
+                let face=main.objectList[objectIndex].faces[j];
+                let fragment=this.scanLine(face);
+                this.depthTest(fragment,j);
             }
 
-            this.depthTest()
-            this.blinnPhongShading();
+            //fragment shading
+            for(let i=0;i<this.canvasHeight;i++)
+            {
+                for(let j=0;j<this.canvasWidth;j++)
+                {
+                    if(this.ZBuffer[i][j]<1)
+                    {
+                        //数据之间的引用关系太复杂了，感觉要优化一下   
+                        let face= main.objectList[objectIndex].faces[this.IDBuffer[i][j]];
+                        let lamada=barycentricInterpolate([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]],j,i);
 
+                        let normalVector=vector3Add(vector3Add(vector3multiply(this.vertexNormals[face[0]],lamada[0]),vector3multiply(this.vertexNormals[face[1]],lamada[1])),vector3multiply(this.vertexNormals[face[2]],lamada[2]));
+                        normalVector=normalize(normalVector);
+
+                        let wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],lamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],lamada[1]),vector3multiply(this.vertexWorld[face[2]],lamada[2])));
+                        let cameraDirection=normalize(vector3Add(this.cameraPos,vector3multiply(wordPos,-1)));
+                        let halfVector=normalize(vector3Add(this.directionLight,cameraDirection));
+
+                        let Ambient=[32,32,32];
+                        let Diffuse=vector3multiply([0,188,212],Math.max(0,vector3DotProduct(normalVector,this.directionLight)));
+                        let Specular=vector3multiply([255,255,255],Math.pow(Math.max(0,vector3DotProduct(normalVector,halfVector)),256));
+
+                        this.drawPixelRGB(j,i,vector3Add(vector3Add(Ambient,Diffuse),Specular));
+                    }
+                }
+            }
+        
             this.ctx.putImageData(this.imageData, 0, 0);
+
+            //顶点标签
             //for(let i=0;i<this.vertex.length;i++)
                 //ctx.fillText((i).toString(),this.vertex[i][0],this.vertex[i][1]);
             
@@ -482,7 +476,7 @@ class RenderPipeline
             {
                 var face=main.objectList[i].faces[j];
 
-                var fragment=this.scanLine(face,j);
+                var fragment=this.scanLine(face);
 
 
                 // for(let k=0;k<fragment.length;k++)
