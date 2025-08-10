@@ -42,6 +42,9 @@ class RenderPipeline
     pointLight=null;
     directionLight=null;
 
+    shadingFragment="flat";
+    faceNormalVectors;
+
     constructor()
     {
         this.canvasWidth=main.canvasWidth;
@@ -64,7 +67,6 @@ class RenderPipeline
         this.transformCameraMatrix=nj.dot(this.Projection(),nj.dot(this.RotationY(-main.angleY),this.translation(-this.cameraPos[0],-this.cameraPos[1],-this.cameraPos[2])));
         this.ZBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(1));
         this.IDBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(-1));
-        this.faceNormalVectors=Array.from({ length: 12 }, () => Array(3).fill(0));
         this.vertexUV=Array.from({ length: 8 }, () => Array(2).fill(0));
         //this.faceUV=Array.from({ length: 12 }, () => Array(2).fill(0));
 
@@ -334,13 +336,23 @@ class RenderPipeline
     }
 
     //split shading code from scanLine
-    blinnPhongShading()
+    blinnPhongShading(normalVector,face,lamada)
     {
         //calculate normal vector
         //calculate light direction
         //calculate half vector
         //calculate ambient, diffuse, specular
         //draw pixel with color
+
+        let wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],lamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],lamada[1]),vector3multiply(this.vertexWorld[face[2]],lamada[2])));
+        let cameraDirection=normalize(vector3Add(this.cameraPos,vector3multiply(wordPos,-1)));
+        let halfVector=normalize(vector3Add(this.directionLight,cameraDirection));
+
+        let Ambient=[32,32,32];
+        let Diffuse=vector3multiply([0,188,212],Math.max(0,vector3DotProduct(normalVector,this.directionLight)));
+        let Specular=vector3multiply([255,255,255],Math.pow(Math.max(0,vector3DotProduct(normalVector,halfVector)),256));
+
+        return vector3Add(vector3Add(Ambient,Diffuse),Specular)
     }
 
     draw()
@@ -403,19 +415,29 @@ class RenderPipeline
                         //数据之间的引用关系太复杂了，感觉要优化一下   
                         let face= main.objectList[objectIndex].faces[this.IDBuffer[i][j]];
                         let lamada=barycentricInterpolate([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]],j,i);
+                        let RGBcolor;
+                        
+                        if(this.shadingFragment=="flat")
+                        {
+                            let normalVector=this.faceNormalVectors[this.IDBuffer[i][j]];
+                            normalVector=normalize(normalVector);
+                            RGBcolor=this.blinnPhongShading(normalVector,face,lamada);
+                        }
+                        else if(this.shadingFragment=="gouraud")
+                        {
+                            let c1=this.blinnPhongShading(this.vertexNormals[face[0]],face,lamada);
+                            let c2=this.blinnPhongShading(this.vertexNormals[face[1]],face,lamada);
+                            let c3=this.blinnPhongShading(this.vertexNormals[face[2]],face,lamada);
+                            RGBcolor=vector3Add(vector3Add(vector3multiply(c1,lamada[0]),vector3multiply(c2,lamada[1])),vector3multiply(c3,lamada[2]));
+                        }
+                        else if(this.shadingFragment=="phong")
+                        {
+                            let normalVector=vector3Add(vector3Add(vector3multiply(this.vertexNormals[face[0]],lamada[0]),vector3multiply(this.vertexNormals[face[1]],lamada[1])),vector3multiply(this.vertexNormals[face[2]],lamada[2]));
+                            normalVector=normalize(normalVector);
+                            RGBcolor=this.blinnPhongShading(normalVector,face,lamada);
+                        }
 
-                        let normalVector=vector3Add(vector3Add(vector3multiply(this.vertexNormals[face[0]],lamada[0]),vector3multiply(this.vertexNormals[face[1]],lamada[1])),vector3multiply(this.vertexNormals[face[2]],lamada[2]));
-                        normalVector=normalize(normalVector);
-
-                        let wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],lamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],lamada[1]),vector3multiply(this.vertexWorld[face[2]],lamada[2])));
-                        let cameraDirection=normalize(vector3Add(this.cameraPos,vector3multiply(wordPos,-1)));
-                        let halfVector=normalize(vector3Add(this.directionLight,cameraDirection));
-
-                        let Ambient=[32,32,32];
-                        let Diffuse=vector3multiply([0,188,212],Math.max(0,vector3DotProduct(normalVector,this.directionLight)));
-                        let Specular=vector3multiply([255,255,255],Math.pow(Math.max(0,vector3DotProduct(normalVector,halfVector)),256));
-
-                        this.drawPixelRGB(j,i,vector3Add(vector3Add(Ambient,Diffuse),Specular));
+                        this.drawPixelRGB(j,i,RGBcolor);
                     }
                 }
             }
@@ -590,5 +612,6 @@ document.getElementById('slider').addEventListener('input', Input.setValueWithSl
 document.getElementById('fileInput').addEventListener('change', Input.readObjFile);
 document.getElementById('material').addEventListener('change', Input.readTextureFile);
 document.getElementById('DepthMap').addEventListener('change', Input.DepthMap);
+document.getElementById('shaddingFrequency').addEventListener('change', Input.setShadingFrequency);
 
 main.canvas.addEventListener('click', Input.drawFace);

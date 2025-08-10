@@ -29,6 +29,26 @@ class Input
         window.main.pipeline.drawingMode();
     }
 
+    static setShadingFrequency(event)
+    {
+        var shadingFrequency=event.target.value;
+
+        if(shadingFrequency=="FlatShading")
+        {
+            window.main.pipeline.shadingFragment="flat";
+        }
+        else if(shadingFrequency=="GouraudShading")
+        {
+            window.main.pipeline.shadingFragment="gouraud";
+        }
+        else if(shadingFrequency=="PhongShading")
+        {
+            window.main.pipeline.shadingFragment="phong";
+        }
+
+        window.main.pipeline.drawingMode();
+    }
+
     //点击transfrom panel的具体属性时，把transfrom panel下面的滑动条更改为对应属性的滑动条
     static setSlideBar(event)
     {
@@ -110,6 +130,7 @@ class Input
 
                 Input.setTransfrom(teapot);
                 window.main.objectList.push(teapot);
+                window.main.pipeline.faceNormalVectors=Array.from({ length: faces.length }, () => Array(3).fill(0));
 
                 window.main.pipeline.draw();
             };
