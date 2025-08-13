@@ -19,14 +19,14 @@ class Input
     {
         if(document.getElementById("DepthMap").checked)
         {
-            window.main.pipeline.drawingMode=window.main.pipeline.drawDepthMap;
+            window.main.pipeline.fragmentShader=window.main.pipeline.depthMapShader;
         }
         else
         {
-            window.main.pipeline.drawingMode=window.main.pipeline.draw;
+            window.main.pipeline.fragmentShader=window.main.pipeline.blinnPhongShader;
         }
 
-        window.main.pipeline.drawingMode();
+        window.main.pipeline.draw();
     }
 
     static setShadingFrequency(event)
@@ -35,18 +35,18 @@ class Input
 
         if(shadingFrequency=="FlatShading")
         {
-            window.main.pipeline.shadingFragment="flat";
+            window.main.pipeline.shadingFrequency="flat";
         }
         else if(shadingFrequency=="GouraudShading")
         {
-            window.main.pipeline.shadingFragment="gouraud";
+            window.main.pipeline.shadingFrequency="gouraud";
         }
         else if(shadingFrequency=="PhongShading")
         {
-            window.main.pipeline.shadingFragment="phong";
+            window.main.pipeline.shadingFrequency="phong";
         }
 
-        window.main.pipeline.drawingMode();
+        window.main.pipeline.draw();
     }
 
     //点击transfrom panel的具体属性时，把transfrom panel下面的滑动条更改为对应属性的滑动条
@@ -81,7 +81,7 @@ class Input
             window.main.transfromTable[id](slider.value);
 
         document.getElementById(id).childNodes[1].value=slider.value;
-        window.main.pipeline.drawingMode();
+        window.main.pipeline.draw();
         console.log("call input function");
     }
 

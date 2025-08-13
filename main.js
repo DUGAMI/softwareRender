@@ -42,7 +42,7 @@ class RenderPipeline
     pointLight=null;
     directionLight=null;
 
-    shadingFragment="flat";
+    shadingFrequency="flat";
     faceNormalVectors;
 
     constructor()
@@ -59,7 +59,7 @@ class RenderPipeline
         this.pointLight=main.pointLight;
         this.directionLight=main.directionLight;
 
-        this.drawingMode=this.draw
+        this.fragmentShader=this.blinnPhongShader
 
         this.ctx=main.ctx;
         this.P=this.Projection();
@@ -338,12 +338,6 @@ class RenderPipeline
     //split shading code from scanLine
     blinnPhongShading(normalVector,face,lamada)
     {
-        //calculate normal vector
-        //calculate light direction
-        //calculate half vector
-        //calculate ambient, diffuse, specular
-        //draw pixel with color
-
         let wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],lamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],lamada[1]),vector3multiply(this.vertexWorld[face[2]],lamada[2])));
         let cameraDirection=normalize(vector3Add(this.cameraPos,vector3multiply(wordPos,-1)));
         let halfVector=normalize(vector3Add(this.directionLight,cameraDirection));
@@ -355,9 +349,48 @@ class RenderPipeline
         return vector3Add(vector3Add(Ambient,Diffuse),Specular)
     }
 
+    blinnPhongShader(i,j)
+    {
+        if(this.ZBuffer[i][j]<1)
+        {
+            //数据之间的引用关系太复杂了，感觉要优化一下   
+            let face= main.objectList[0].faces[this.IDBuffer[i][j]];
+            let lamada=barycentricInterpolate([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]],j,i);
+            let RGBcolor;
+            
+            if(this.shadingFrequency=="flat")
+            {
+                let normalVector=this.faceNormalVectors[this.IDBuffer[i][j]];
+                normalVector=normalize(normalVector);
+                RGBcolor=this.blinnPhongShading(normalVector,face,lamada);
+            }
+            else if(this.shadingFrequency=="gouraud")
+            {
+                let c1=this.blinnPhongShading(this.vertexNormals[face[0]],face,lamada);
+                let c2=this.blinnPhongShading(this.vertexNormals[face[1]],face,lamada);
+                let c3=this.blinnPhongShading(this.vertexNormals[face[2]],face,lamada);
+                RGBcolor=vector3Add(vector3Add(vector3multiply(c1,lamada[0]),vector3multiply(c2,lamada[1])),vector3multiply(c3,lamada[2]));
+            }
+            else if(this.shadingFrequency=="phong")
+            {
+                let normalVector=vector3Add(vector3Add(vector3multiply(this.vertexNormals[face[0]],lamada[0]),vector3multiply(this.vertexNormals[face[1]],lamada[1])),vector3multiply(this.vertexNormals[face[2]],lamada[2]));
+                normalVector=normalize(normalVector);
+                RGBcolor=this.blinnPhongShading(normalVector,face,lamada);
+            }
+
+            this.drawPixelRGB(j,i,RGBcolor);
+        }
+    }
+
+    depthMapShader(i,j)
+    {
+        var depthValue=this.ZBuffer[i][j];
+        var colorValue=Math.floor((1-depthValue)*255);
+        this.drawPixelRGB(j,i,[colorValue,colorValue,colorValue]);   
+    }
+
     draw()
     {
-        //ctx.clearRect(0,0,canvasWidth,canvasHeight);
         this.buffer.fill(0);
         this.ZBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(1));
 
@@ -371,20 +404,6 @@ class RenderPipeline
 
             //nomarl vector
             this.generateNormalVector();
-            
-
-            // this.vertexNormals=[[0.577,-0.577,0.577],
-            //                     [-0.577,-0.577,0.577],
-            //                     [-0.577,-0.577,-0.577],
-            //                     [0.577,-0.577,-0.577],
-            //                     [0.577,0.577,0.577],
-            //                     [-0.577,0.577,0.577],
-            //                     [-0.577,0.577,-0.577],
-            //                     [0.577,0.577,-0.577],
-            //                 ];
-
-            //this.generateVertexColor();
-
 
             this.transformCamera();
             this.transformScreen();
@@ -410,116 +429,13 @@ class RenderPipeline
             {
                 for(let j=0;j<this.canvasWidth;j++)
                 {
-                    if(this.ZBuffer[i][j]<1)
-                    {
-                        //数据之间的引用关系太复杂了，感觉要优化一下   
-                        let face= main.objectList[objectIndex].faces[this.IDBuffer[i][j]];
-                        let lamada=barycentricInterpolate([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]],j,i);
-                        let RGBcolor;
-                        
-                        if(this.shadingFragment=="flat")
-                        {
-                            let normalVector=this.faceNormalVectors[this.IDBuffer[i][j]];
-                            normalVector=normalize(normalVector);
-                            RGBcolor=this.blinnPhongShading(normalVector,face,lamada);
-                        }
-                        else if(this.shadingFragment=="gouraud")
-                        {
-                            let c1=this.blinnPhongShading(this.vertexNormals[face[0]],face,lamada);
-                            let c2=this.blinnPhongShading(this.vertexNormals[face[1]],face,lamada);
-                            let c3=this.blinnPhongShading(this.vertexNormals[face[2]],face,lamada);
-                            RGBcolor=vector3Add(vector3Add(vector3multiply(c1,lamada[0]),vector3multiply(c2,lamada[1])),vector3multiply(c3,lamada[2]));
-                        }
-                        else if(this.shadingFragment=="phong")
-                        {
-                            let normalVector=vector3Add(vector3Add(vector3multiply(this.vertexNormals[face[0]],lamada[0]),vector3multiply(this.vertexNormals[face[1]],lamada[1])),vector3multiply(this.vertexNormals[face[2]],lamada[2]));
-                            normalVector=normalize(normalVector);
-                            RGBcolor=this.blinnPhongShading(normalVector,face,lamada);
-                        }
-
-                        this.drawPixelRGB(j,i,RGBcolor);
-                    }
+                    this.fragmentShader(i,j);
                 }
             }
         
             this.ctx.putImageData(this.imageData, 0, 0);
 
             //顶点标签
-            //for(let i=0;i<this.vertex.length;i++)
-                //ctx.fillText((i).toString(),this.vertex[i][0],this.vertex[i][1]);
-            
-        }
-    }
-
-    drawDepthMap()
-    {
-         //ctx.clearRect(0,0,canvasWidth,canvasHeight);
-        this.buffer.fill(0);
-        this.ZBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(1));
-
-        for(let i=0;i<main.objectList.length;i++)
-        {
-            this.vertex=nj.array(main.objectList[i].vertex).T;
-            this.vertexNormals=Array.from({ length: this.vertex.shape[1] }, () => Array(this.vertex.shape[0]).fill(0));
-
-            this.transform(main.objectList[i]);
-            this.vertexWorld=this.vertex.T.tolist();
-
-            //nomarl vector
-            this.generateNormalVector();
-            
-
-            // this.vertexNormals=[[0.577,-0.577,0.577],
-            //                     [-0.577,-0.577,0.577],
-            //                     [-0.577,-0.577,-0.577],
-            //                     [0.577,-0.577,-0.577],
-            //                     [0.577,0.577,0.577],
-            //                     [-0.577,0.577,0.577],
-            //                     [-0.577,0.577,-0.577],
-            //                     [0.577,0.577,-0.577],
-            //                 ];
-
-            //this.generateVertexColor();
-
-
-            this.transformCamera();
-            this.transformScreen();
-
-            this.vertex=this.vertex.T;
-
-            //取xy坐标
-            var col0=this.vertex.slice(null,[0,1]);
-            var col1=nj.subtract(nj.ones([this.vertex.shape[0],1]).multiply(this.canvasHeight),this.vertex.slice(null,[1,2]));
-            var col3=this.vertex.slice(null,[2,3]);
-            this.vertex=nj.concatenate(col0,col1,col3).tolist();
-
-
-            for(let j=0;j<main.objectList[i].faces.length;j++)
-            {
-                var face=main.objectList[i].faces[j];
-
-                var fragment=this.scanLine(face);
-
-
-                // for(let k=0;k<fragment.length;k++)
-                //     pipeline.drawPixel(fragment[k][0],fragment[k][1],"green");
-
-                // this.drawLine(this.vertex[face[0]].slice(0,2),this.vertex[face[1]].slice(0,2),"black");
-                // this.drawLine(this.vertex[face[0]].slice(0,2),this.vertex[face[2]].slice(0,2),"black");
-                // this.drawLine(this.vertex[face[1]].slice(0,2),this.vertex[face[2]].slice(0,2),"black");   
-            }
-
-            for(let y=0;y<this.canvasHeight;y++)
-            {
-                for(let x=0;x<this.canvasWidth;x++)
-                {
-                    var depthValue=this.ZBuffer[y][x];
-                    var colorValue=Math.floor((1-depthValue)*255);
-                    this.drawPixelRGB(x,y,[colorValue,colorValue,colorValue]);
-                }
-            }
-
-            this.ctx.putImageData(this.imageData, 0, 0);
             //for(let i=0;i<this.vertex.length;i++)
                 //ctx.fillText((i).toString(),this.vertex[i][0],this.vertex[i][1]);
             
