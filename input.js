@@ -124,13 +124,20 @@ class Input
                         }
                 }
 
-                var teapot=window.main.genGameObject(vertex,faces);
-                teapot.scale=[10,10,10];
-                teapot.position=[0,0,0];
+                var newObject=window.main.genGameObject(vertex,faces,file.name.split(".")[0]);
+                newObject.scale=[10,10,10];
+                newObject.position=[0,0,0];
 
-                Input.setTransfrom(teapot);
-                window.main.objectList.push(teapot);
-                window.main.pipeline.faceNormalVectors=Array.from({ length: faces.length }, () => Array(3).fill(0));
+                let li=document.createElement("li");
+                let span=document.createElement("span");
+                span.textContent=newObject.objectName
+                li.appendChild(span);
+
+                Input.setTransfrom(newObject);
+                window.main.objectList.push(newObject);
+                document.getElementById("objectList").appendChild(li);
+
+
 
                 window.main.pipeline.draw();
             };

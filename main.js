@@ -6,14 +6,16 @@ import {Input} from './input.js';
 
 class GameObject
 {
+    objectName;
     position=[0,0,0];
     rotation=[0,0,0];
     scale=[1,1,1];
 
-    constructor(vertex,faces)
+    constructor(vertex,faces,objectName)
     {
         this.vertex=vertex;
         this.faces=faces;
+        this.objectName=objectName;
     }
 }
 
@@ -44,6 +46,7 @@ class RenderPipeline
 
     shadingFrequency="flat";
     faceNormalVectors;
+    objectIndex;
 
     constructor()
     {
@@ -67,6 +70,7 @@ class RenderPipeline
         this.transformCameraMatrix=nj.dot(this.Projection(),nj.dot(this.RotationY(-main.angleY),this.translation(-this.cameraPos[0],-this.cameraPos[1],-this.cameraPos[2])));
         this.ZBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(1));
         this.IDBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(-1));
+        this.ObjectBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(-1));
         this.vertexUV=Array.from({ length: 8 }, () => Array(2).fill(0));
         //this.faceUV=Array.from({ length: 12 }, () => Array(2).fill(0));
 
@@ -206,9 +210,9 @@ class RenderPipeline
         var facePerVertex=Array(vertex.length).fill(0);
 
         //generate normal vector with face
-        for(let i=0;i<main.objectList[0].faces.length;i++)
+        for(let i=0;i<main.objectList[this.objectIndex].faces.length;i++)
         {
-            var face=main.objectList[0].faces[i];
+            var face=main.objectList[this.objectIndex].faces[i];
 
             var A=vertex[face[0]];
             var B=vertex[face[1]];
@@ -277,6 +281,10 @@ class RenderPipeline
 
         for(let scanY=minY;scanY<=maxY;scanY++)
         {
+            //skip scanline out of canvas
+            if(scanY<0||scanY>=this.canvasHeight)
+                continue;
+
             var intersections=[];
 
             for(let i=0;i<3;i++)
@@ -308,6 +316,10 @@ class RenderPipeline
 
                 for(let i=xleft;i<=xRight;i++)
                 {
+                    //skip pixel out of canvas
+                    if(i<0||i>=this.canvasWidth)
+                        continue;
+
                     var z=1/(zleft + (i-xleft) * (zRight - zleft) / (xRight - xleft));
                     facePixel.push([i,scanY,z]);
                 }
@@ -331,6 +343,7 @@ class RenderPipeline
             {
                 this.ZBuffer[scanY][i]=z;
                 this.IDBuffer[scanY][i]=index;
+                this.ObjectBuffer[scanY][i]=this.objectIndex;
             }
         }
     }
@@ -353,8 +366,13 @@ class RenderPipeline
     {
         if(this.ZBuffer[i][j]<1)
         {
-            //数据之间的引用关系太复杂了，感觉要优化一下   
-            let face= main.objectList[0].faces[this.IDBuffer[i][j]];
+            //数据之间的引用关系太复杂了，感觉要优化一下
+            let objectIndex=this.ObjectBuffer[i][j];
+
+            if(objectIndex!=this.objectIndex)
+                return;
+
+            let face= main.objectList[objectIndex].faces[this.IDBuffer[i][j]];
             let lamada=barycentricInterpolate([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]],j,i);
             let RGBcolor;
             
@@ -396,6 +414,9 @@ class RenderPipeline
 
         for(let objectIndex=0;objectIndex<main.objectList.length;objectIndex++)
         {
+            this.objectIndex=objectIndex;
+            this.faceNormalVectors=Array.from({ length: main.objectList[objectIndex].faces.length }, () => Array(3).fill(0));
+
             this.vertex=nj.array(main.objectList[objectIndex].vertex).T;
             this.vertexNormals=Array.from({ length: this.vertex.shape[1] }, () => Array(this.vertex.shape[0]).fill(0));
 
@@ -432,14 +453,14 @@ class RenderPipeline
                     this.fragmentShader(i,j);
                 }
             }
-        
+
             this.ctx.putImageData(this.imageData, 0, 0);
 
             //顶点标签
             //for(let i=0;i<this.vertex.length;i++)
                 //ctx.fillText((i).toString(),this.vertex[i][0],this.vertex[i][1]);
-            
         }
+
     }
 
 }
@@ -506,9 +527,9 @@ class Main
 
     }
 
-    genGameObject(vertex,faces)
+    genGameObject(vertex,faces,objectName)
     {
-        return new GameObject(vertex,faces);
+        return new GameObject(vertex,faces,objectName);
     }
 }
 
