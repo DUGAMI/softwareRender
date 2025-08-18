@@ -500,6 +500,8 @@ class Main
         this.directionLight=normalize([-1,1,1]);
 
         this.objectList=[];
+        //selected object index
+        this.selectedObject=null;
         this.textureData=[];
         this.textureWidth;
         this.textureHeight;
@@ -514,15 +516,15 @@ class Main
         this.IDList=["PositionX","PositionY","PositionZ","RotationX","RotationY","RotationZ","ScaleX","ScaleY","ScaleZ"];
 
         this.transfromTable={
-            "PositionX":(value)=>{this.objectList[0].position[0]=Number(value);},
-            "PositionY":(value)=>{this.objectList[0].position[1]=Number(value);},
-            "PositionZ":(value)=>{this.objectList[0].position[2]=Number(value);},
-            "RotationX":(value)=>{this.objectList[0].rotation[0]=Number(value);},
-            "RotationY":(value)=>{this.objectList[0].rotation[1]=Number(value);},
-            "RotationZ":(value)=>{this.objectList[0].rotation[2]=Number(value);},
-            "ScaleX":(value)=>{this.objectList[0].scale[0]=Number(value);},
-            "ScaleY":(value)=>{this.objectList[0].scale[1]=Number(value);},
-            "ScaleZ":(value)=>{this.objectList[0].scale[2]=Number(value);},
+            "PositionX":(value)=>{this.objectList[this.selectedObject].position[0]=Number(value);},
+            "PositionY":(value)=>{this.objectList[this.selectedObject].position[1]=Number(value);},
+            "PositionZ":(value)=>{this.objectList[this.selectedObject].position[2]=Number(value);},
+            "RotationX":(value)=>{this.objectList[this.selectedObject].rotation[0]=Number(value);},
+            "RotationY":(value)=>{this.objectList[this.selectedObject].rotation[1]=Number(value);},
+            "RotationZ":(value)=>{this.objectList[this.selectedObject].rotation[2]=Number(value);},
+            "ScaleX":(value)=>{this.objectList[this.selectedObject].scale[0]=Number(value);},
+            "ScaleY":(value)=>{this.objectList[this.selectedObject].scale[1]=Number(value);},
+            "ScaleZ":(value)=>{this.objectList[this.selectedObject].scale[2]=Number(value);},
         }
 
     }

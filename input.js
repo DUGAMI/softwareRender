@@ -128,14 +128,26 @@ class Input
                 newObject.scale=[10,10,10];
                 newObject.position=[0,0,0];
 
+                //manipulate html and css of page
                 let li=document.createElement("li");
                 let span=document.createElement("span");
+                let objectList=document.getElementById("objectList");
                 span.textContent=newObject.objectName
                 li.appendChild(span);
+                objectList.appendChild(li);
+
+                let res=objectList.querySelector(".selected");
+                if(res)
+                {
+                    res.removeAttribute("class");
+                }
+                objectList.lastChild.setAttribute("class","selected");
 
                 Input.setTransfrom(newObject);
                 window.main.objectList.push(newObject);
-                document.getElementById("objectList").appendChild(li);
+                window.main.selectedObject=window.main.objectList.length-1;
+
+
 
 
 
