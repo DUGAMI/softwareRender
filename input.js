@@ -1,4 +1,5 @@
 export {Input};
+import { Loader } from "./loader.js";
 
 class Input
 {
@@ -114,51 +115,20 @@ class Input
     static readObjFile(event)
     {
         const file = event.target.files[0];
+        let fileName=file.name.split(".")[0];
+
         if (file) {
             const reader = new FileReader();
             
             reader.onload = function(e) 
             {
-                //console.log(e.target.result); // 文件内容
-
-                var result=e.target.result;
-                var lines=result.split("\n");
-
-                var vertex=[];
-                var faces=[];
-
-                for(let i=0;i<lines.length;i++)
-                {
-                    var data=lines[i].split(" ");
-                    
-                    if(data[0]=='v')
-                        vertex.push([Number(data[1]),Number(data[2]),Number(data[3]),1]);
-                    else if(data[0]=='f')
-                        {
-                            if(data.length-1==3)
-                            {
-                                if(data[1].includes("/"))
-                                    faces.push([Number(data[1].split("/")[0])-1,Number(data[2].split("/")[0])-1,Number(data[3].split("/")[0])-1]);
-                                else
-                                    faces.push([Number(data[1])-1,Number(data[2])-1,Number(data[3])-1]);
-                            }
-                            else if(data.length-1==4)
-                            {
-                                faces.push([Number(data[1].split("/")[0])-1,Number(data[2].split("/")[0])-1,Number(data[3].split("/")[0])-1]);
-                                faces.push([Number(data[1].split("/")[0])-1,Number(data[3].split("/")[0])-1,Number(data[4].split("/")[0])-1]);
-                            }
-                        }
-                }
-
-                var newObject=window.main.genGameObject(vertex,faces,file.name.split(".")[0]);
-                newObject.scale=[10,10,10];
-                newObject.position=[0,0,0];
+                Loader.objLoader(e,fileName);
 
                 //manipulate html and css of page
                 let li=document.createElement("li");
                 let span=document.createElement("span");
                 let objectList=document.getElementById("objectList");
-                span.textContent=newObject.objectName
+                span.textContent=fileName
                 li.appendChild(span);
                 objectList.appendChild(li);
 
@@ -169,15 +139,11 @@ class Input
                 }
                 objectList.lastChild.setAttribute("class","selected");
 
-                Input.setTransfrom(newObject);
-                window.main.objectList.push(newObject);
-                window.main.selectedObject=window.main.objectList.length-1;
-
+                Input.setTransfrom(window.main.objectList.at(-1));
                 window.main.pipeline.draw();
             };
 
             reader.readAsText(file);
-
         }
     }
 
