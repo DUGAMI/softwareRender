@@ -552,5 +552,6 @@ document.getElementById('fileInput').addEventListener('change', Input.readObjFil
 document.getElementById('material').addEventListener('change', Input.readTextureFile);
 document.getElementById('DepthMap').addEventListener('change', Input.DepthMap);
 document.getElementById('shaddingFrequency').addEventListener('change', Input.setShadingFrequency);
+document.getElementById('objectList').addEventListener('click', Input.selectedObject);
 
 main.canvas.addEventListener('click', Input.drawFace);

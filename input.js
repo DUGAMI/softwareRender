@@ -85,6 +85,32 @@ class Input
         console.log("call input function");
     }
 
+    static selectedObject(event)
+    {
+        var objectName=event.target.innerText;
+
+        for(let i=0;i<window.main.objectList.length;i++)
+        {
+            if(window.main.objectList[i].objectName==objectName)
+            {
+                window.main.selectedObject=i;
+                Input.setTransfrom(window.main.objectList[i]);
+                break;
+            }
+        }
+
+        let res=document.getElementById("objectList").querySelector(".selected");
+        if(res)
+        {
+            res.removeAttribute("class");
+        }
+
+        if(event.target.tagName=="SPAN")
+            event.target.parentElement.setAttribute("class","selected");
+        else
+            event.target.setAttribute("class","selected");
+    }
+
     static readObjFile(event)
     {
         const file = event.target.files[0];
@@ -146,10 +172,6 @@ class Input
                 Input.setTransfrom(newObject);
                 window.main.objectList.push(newObject);
                 window.main.selectedObject=window.main.objectList.length-1;
-
-
-
-
 
                 window.main.pipeline.draw();
             };
