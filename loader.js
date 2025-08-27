@@ -7,20 +7,40 @@ class Loader
     //2.程序能很好的识别没有现成的法线向量的情况
     //3.法线向量能够根据物体的transfrom做相应的变化
 
+    //读取obj文件里的纹理信息
+
+    // 1.读取每个mesh里的材质信息（Gameobject对象添加材质名称）
+    // 2.读取UV坐标索引
+
+    // 从mtl文件中读取材质=>纹理映射
+    // 先上传需要的纹理文件，然后把读取的纹理数据存入一个列表
+    // 根据映射关系生成一个材质名称到像素数据的一个map
+
+    // 利用纹理信息去渲染
+    // 根据UV坐标索引获取UV坐标，然后从对应的材质=>纹理里采样
+    // 在渲染某个像素时，获取对应面的三个顶点的RGB值，然后插值
+
     static objLoader(e,fileName)
     {
-        var result=e.target.result;
-        var lines=result.split("\n");
+        let result=e.target.result;
+        let lines=result.split("\n");
 
-        var vertex=[];
-        var vertexNormal=[];
-        var faces=[];
-        var facesNormalVectors=[];
+        let vertex=[];
+        let vertexNormal=[];
+        let vertexUV=[];
+
+        let faces=[];
+        let facesNormalVectors=[];
+        let UVIndexes=[];
+
+        let materialName="";
 
         let vertexNum=0;
         let currentVertexNum=0;
         let vertexNormalNum=0;
         let currentVertexNormalNum=0;
+        let vertexUVNum=0;
+        let currentVertexUVNum=0;
 
         let currentMeshName="";
         let state="DEFAULT_MESH";
@@ -40,6 +60,7 @@ class Loader
             {   
                 let vertexBaseIndex=vertexNum-currentVertexNum;
                 let vertexNormalBaseIndex=vertexNormalNum-currentVertexNormalNum;
+                let vertexUVBaseIndex=vertexUVNum-currentVertexUVNum;
 
                 //redinex faces
                 for(let j=0;j<faces.length;j++)
@@ -59,10 +80,24 @@ class Loader
                     }
                 }
 
+                if(UVIndexes.length!=0)
+                {
+                    for(let j=0;j<UVIndexes.length;j++)
+                    {
+                        UVIndexes[j][0]-=vertexUVBaseIndex;
+                        UVIndexes[j][1]-=vertexUVBaseIndex;
+                        UVIndexes[j][2]-=vertexUVBaseIndex;
+                    }
+                }
+
                 //update object list and selected object
                 var newObject=window.main.genGameObject(vertex,faces,currentMeshName);
                 newObject.vertexNormalVectors=vertexNormal;
                 newObject.facesNormalVectors=facesNormalVectors;
+                newObject.vertexUV=vertexUV;
+                newObject.facesUV=UVIndexes;
+
+                newObject.materialName=materialName;
                 newObject.scale=[10,10,10];
                 newObject.position=[0,0,0];
 
@@ -71,11 +106,15 @@ class Loader
 
                 vertex=[];
                 vertexNormal=[];
+                vertexUV=[];
                 faces=[];
                 facesNormalVectors=[];
+                UVIndexes=[];
 
                 currentVertexNum=0;
                 currentVertexNormalNum=0;
+                currentVertexUVNum=0;
+                
                 currentMeshName=data[1];
                 continue;
             }
@@ -96,6 +135,18 @@ class Loader
 
                 if(state=="MULTI_MESH")
                     currentVertexNormalNum++;
+            }
+            else if(data[0]=='vt')
+            {
+                vertexUV.push([Number(data[1]),Number(data[2])]);
+                vertexUVNum++;
+
+                if(state=="MULTI_MESH")
+                    currentVertexUVNum++;
+            }
+            else if(data[0]=='usemtl')
+            {
+                materialName=data[1];
             }
             else if(data[0]=='f')
             {
@@ -159,6 +210,10 @@ class Loader
         
         newObject.vertexNormalVectors=vertexNormal;
         newObject.facesNormalVectors=facesNormalVectors;
+        newObject.vertexUV=vertexUV;
+        newObject.facesUV=UVIndexes;
+
+        newObject.materialName=materialName;
         newObject.scale=[10,10,10];
         newObject.position=[0,0,0];
 

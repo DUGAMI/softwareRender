@@ -7,12 +7,16 @@ import {Input} from './input.js';
 class GameObject
 {
     objectName;
+    materialName;
     position=[0,0,0];
     rotation=[0,0,0];
     scale=[1,1,1];
 
     vertexNormalVectors=[];
     facesNoramlVectors=[];
+
+    vertexUV=[];
+    facesUV=[];
 
     constructor(vertex,faces,objectName)
     {
