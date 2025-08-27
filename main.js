@@ -11,6 +11,9 @@ class GameObject
     rotation=[0,0,0];
     scale=[1,1,1];
 
+    vertexNormalVectors=[];
+    facesNoramlVectors=[];
+
     constructor(vertex,faces,objectName)
     {
         this.vertex=vertex;
@@ -203,6 +206,28 @@ class RenderPipeline
         this.vertex=nj.dot(this.transfromScreenMatrix,this.vertex);
     }
 
+    generateFaceNormalVector()
+    {
+        var vertex=this.vertex.T.tolist();
+
+        //generate normal vector with face
+        for(let i=0;i<main.objectList[this.objectIndex].faces.length;i++)
+        {
+            var face=main.objectList[this.objectIndex].faces[i];
+
+            var A=vertex[face[0]];
+            var B=vertex[face[1]];
+            var C=vertex[face[2]];
+
+            var AB=[B[0]-A[0],B[1]-A[1],B[2]-A[2]];
+            var AC=[C[0]-A[0],C[1]-A[1],C[2]-A[2]];
+
+            var normalVector=crossProduct(AB,AC);
+            this.faceNormalVectors[i]=normalVector;
+
+        }
+    }
+
     generateNormalVector()
     {
         //var normalVectors=Array.from({ length: this.vertex.shape[0] }, () => Array(this.vertex.shape[1]).fill(0));
@@ -224,9 +249,9 @@ class RenderPipeline
             var normalVector=crossProduct(AB,AC);
             this.faceNormalVectors[i]=normalVector;
 
-            this.vertexNormals[face[0]]=vector3Add(this.vertexNormals[face[0]],normalVector);
-            this.vertexNormals[face[1]]=vector3Add(this.vertexNormals[face[1]],normalVector);
-            this.vertexNormals[face[2]]=vector3Add(this.vertexNormals[face[2]],normalVector);
+            this.vertexNormalVectors[face[0]]=vector3Add(this.vertexNormalVectors[face[0]],normalVector);
+            this.vertexNormalVectors[face[1]]=vector3Add(this.vertexNormalVectors[face[1]],normalVector);
+            this.vertexNormalVectors[face[2]]=vector3Add(this.vertexNormalVectors[face[2]],normalVector);
 
             facePerVertex[face[0]]+=1;
             facePerVertex[face[1]]+=1;
@@ -234,9 +259,9 @@ class RenderPipeline
         }
 
         //calculate noram vector of vertex(mean of normal vector)
-        for(let i=0;i<this.vertexNormals.length;i++)
+        for(let i=0;i<this.vertexNormalVectors.length;i++)
         {
-            this.vertexNormals[i]=normalize([this.vertexNormals[i][0]/facePerVertex[i],this.vertexNormals[i][1]/facePerVertex[i],this.vertexNormals[i][2]/facePerVertex[i]]);
+            this.vertexNormalVectors[i]=normalize([this.vertexNormalVectors[i][0]/facePerVertex[i],this.vertexNormalVectors[i][1]/facePerVertex[i],this.vertexNormalVectors[i][2]/facePerVertex[i]]);
         }
 
     }
@@ -249,7 +274,7 @@ class RenderPipeline
         for(let i=0;i<this.vertexWorld.length;i++)
         {
             var lightDirection=normalize(vector3Add(pointLight,vector3multiply(this.vertexWorld[i],-1)));
-            var normalVector=this.vertexNormals[i];
+            var normalVector=this.vertexNormalVectors[i];
 
             this.vertexColor.push(Math.max(0,vector3DotProduct(lightDirection,normalVector)*255));
         }
@@ -368,11 +393,12 @@ class RenderPipeline
         {
             //数据之间的引用关系太复杂了，感觉要优化一下
             let objectIndex=this.ObjectBuffer[i][j];
-
+            
             if(objectIndex!=this.objectIndex)
                 return;
 
             let face= main.objectList[objectIndex].faces[this.IDBuffer[i][j]];
+            let facesNormalVectors=main.objectList[objectIndex].facesNormalVectors[this.IDBuffer[i][j]];
             let lamada=barycentricInterpolate([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]],j,i);
             let RGBcolor;
             
@@ -384,16 +410,17 @@ class RenderPipeline
             }
             else if(this.shadingFrequency=="gouraud")
             {
-                let c1=this.blinnPhongShading(this.vertexNormals[face[0]],face,lamada);
-                let c2=this.blinnPhongShading(this.vertexNormals[face[1]],face,lamada);
-                let c3=this.blinnPhongShading(this.vertexNormals[face[2]],face,lamada);
+                let c1=this.blinnPhongShading(this.vertexNormalVectors[face[0]],face,lamada);
+                let c2=this.blinnPhongShading(this.vertexNormalVectors[face[1]],face,lamada);
+                let c3=this.blinnPhongShading(this.vertexNormalVectors[face[2]],face,lamada);
                 RGBcolor=vector3Add(vector3Add(vector3multiply(c1,lamada[0]),vector3multiply(c2,lamada[1])),vector3multiply(c3,lamada[2]));
             }
             else if(this.shadingFrequency=="phong")
             {
-                let normalVector=vector3Add(vector3Add(vector3multiply(this.vertexNormals[face[0]],lamada[0]),vector3multiply(this.vertexNormals[face[1]],lamada[1])),vector3multiply(this.vertexNormals[face[2]],lamada[2]));
+                let normalVector=vector3Add(vector3Add(vector3multiply(this.vertexNormalVectors[face[0]],lamada[0]),vector3multiply(this.vertexNormalVectors[face[1]],lamada[1])),vector3multiply(this.vertexNormalVectors[face[2]],lamada[2]));
                 normalVector=normalize(normalVector);
                 RGBcolor=this.blinnPhongShading(normalVector,face,lamada);
+                
             }
 
             this.drawPixelRGB(j,i,RGBcolor);
@@ -414,17 +441,20 @@ class RenderPipeline
 
         for(let objectIndex=0;objectIndex<main.objectList.length;objectIndex++)
         {
+
             this.objectIndex=objectIndex;
             this.faceNormalVectors=Array.from({ length: main.objectList[objectIndex].faces.length }, () => Array(3).fill(0));
 
             this.vertex=nj.array(main.objectList[objectIndex].vertex).T;
-            this.vertexNormals=Array.from({ length: this.vertex.shape[1] }, () => Array(this.vertex.shape[0]).fill(0));
+            this.vertexNormalVectors=Array.from({ length: this.vertex.shape[1] }, () => Array(this.vertex.shape[0]).fill(0));
 
             this.transform(main.objectList[objectIndex]);
             this.vertexWorld=this.vertex.T.tolist();
 
             //nomarl vector
             this.generateNormalVector();
+            // if(main.objectList[objectIndex].vertexNormalVectors.length!=0)
+            //     this.vertexNormalVectors=main.objectList[objectIndex].vertexNormalVectors;
 
             this.transformCamera();
             this.transformScreen();
@@ -459,6 +489,8 @@ class RenderPipeline
             //顶点标签
             //for(let i=0;i<this.vertex.length;i++)
                 //ctx.fillText((i).toString(),this.vertex[i][0],this.vertex[i][1]);
+
+            //break;
         }
 
     }
