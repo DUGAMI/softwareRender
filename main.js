@@ -13,10 +13,10 @@ class GameObject
     scale=[1,1,1];
 
     vertexNormalVectors=[];
-    facesNoramlVectors=[];
+    facesNormalVectors=[];
 
     vertexUV=[];
-    facesUV=[];
+    UVIndexes=[];
 
     constructor(vertex,faces,objectName)
     {
@@ -24,6 +24,22 @@ class GameObject
         this.faces=faces;
         this.objectName=objectName;
     }
+}
+
+class Texture
+{
+    textureName;
+    textureData;
+    textureWidth;
+    textureHeight;
+
+    constructor(textureName,textureData,textureWidth,textureHeight)
+    {
+        this.textureName=textureName;
+        this.textureData=textureData;
+        this.textureWidth=textureWidth;
+        this.textureHeight=textureHeight;
+    }   
 }
 
 class RenderPipeline
@@ -83,20 +99,6 @@ class RenderPipeline
 
         this.imageData = this.ctx.getImageData(0, 0, this.canvasWidth, this.canvasHeight);
         this.buffer = this.imageData.data;
-
-        this.vertexUV=[[0.5,0.5],[0,0.5],[0.5,0.5],[0,0.5],[0.5,0],[0,0],[0.5,0],[0,0]];
-        this.faceUV=[[[0.5,0.5],[0.5,0],[0,0.5]],
-                        [[0,0],[0,0.5],[0.5,0]],
-                        [[0.5,0.5],[0.5,0],[0,0.5]],
-                        [[0,0],[0,0.5],[0.5,0]],
-                        [[0,0],[0,0.5],[0.5,0]],
-                        [[0.5,0.5],[0.5,0],[0,0.5]],
-                        [[0.5,0.5],[0.5,0],[0,0.5]],
-                        [[0,0],[0,0.5],[0.5,0]],
-                        [[0.5,1],[0.5,0.5],[0.,1]],
-                        [[0,0.5],[0,1],[0.5,0.5]],
-                        [[1,0.5],[0.5,0.5],[1,0]],
-                        [[0.5,0],[1,0],[0.5,0.5]]];
     }
 
     // Function to draw a pixel
@@ -536,11 +538,11 @@ class Main
         this.directionLight=normalize([-1,1,1]);
 
         this.objectList=[];
+        this.textureList=[];
+        this.mtlMap={"alas_kaki":"dress.png","baju":"dress.png","cd":"eyebrows_and_eyes.png","kalung":"eyebrows_and_eyes.png","kerah":"eyebrows_and_eyes.png",
+            "Kubus.007":"eyebrows_and_eyes.png","Lingkaran":"dress.png","Lingkaran.003":"","NurbsPath.005":"hair_(2).png","NurbsPath.009":"hair_(2).png"};
         //selected object index
         this.selectedObject=null;
-        this.textureData=[];
-        this.textureWidth;
-        this.textureHeight;
 
         this.canvas = document.getElementById('Canvas');
         this.ctx = this.canvas.getContext('2d');
@@ -563,11 +565,18 @@ class Main
             "ScaleZ":(value)=>{this.objectList[this.selectedObject].scale[2]=Number(value);},
         }
 
+
+
     }
 
     genGameObject(vertex,faces,objectName)
     {
         return new GameObject(vertex,faces,objectName);
+    }
+
+    genTexture(textureName,textureData,textureWidth,textureHeight)
+    {
+        return new Texture(textureName,textureData,textureWidth,textureHeight);
     }
 }
 

@@ -115,6 +115,7 @@ class Input
     static readObjFile(event)
     {
         const file = event.target.files[0];
+
         let fileName=file.name.split(".")[0];
 
         if (file) {
@@ -192,36 +193,41 @@ class Input
 
     static readTextureFile(event) 
     {
-        const file = event.target.files[0];
-        if (!file) return;
+        const files = event.target.files;
 
         const canvas = document.createElement('canvas');
-        const reader = new FileReader();
 
-        reader.onload = function(e) {
+        for(let i=0;i<files.length;i++)
+        {
+            const reader = new FileReader();
 
-            const img = new Image();
-            img.onload = function() {
+            reader.onload = function(e) {
 
-                const ctx = window.main.canvas.getContext('2d');
-                window.main.canvas.width = img.width;
-                window.main.canvas.height = img.height;
+                const img = new Image();
+                img.onload = function() {
 
-                // 绘制图片到Canvas
-                ctx.drawImage(img, 0, 0);
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
 
-                // 获取像素数据
-                const imageData = ctx.getImageData(0, 0, window.main.canvas.width, window.main.canvas.height);
+                    // 绘制图片到Canvas
+                    ctx.drawImage(img, 0, 0);
 
-                textureData = imageData.data;
-                textureWidth=img.width;
-                textureHeight=img.height;
+                    // 获取像素数据
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
+                    let textureData = imageData.data;
+                    let textureWidth=img.width;
+                    let textureHeight=img.height;
+
+                    window.main.textureList.push(window.main.genTexture(files[i].name,textureData,textureWidth,textureHeight));
+
+                };
+                img.src = e.target.result;
             };
-            img.src = e.target.result;
-        };
 
-        reader.readAsDataURL(file);
+            reader.readAsDataURL(files[i]);
+        }
     }
 
 }

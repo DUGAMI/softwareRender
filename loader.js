@@ -95,7 +95,7 @@ class Loader
                 newObject.vertexNormalVectors=vertexNormal;
                 newObject.facesNormalVectors=facesNormalVectors;
                 newObject.vertexUV=vertexUV;
-                newObject.facesUV=UVIndexes;
+                newObject.UVIndexes=UVIndexes;
 
                 newObject.materialName=materialName;
                 newObject.scale=[10,10,10];
@@ -156,6 +156,7 @@ class Loader
                     {
                         faces.push([Number(data[1].split("/")[0])-1,Number(data[2].split("/")[0])-1,Number(data[3].split("/")[0])-1]);
                         facesNormalVectors.push([Number(data[1].split("/")[2])-1,Number(data[2].split("/")[2])-1,Number(data[3].split("/")[2])-1]);
+                        UVIndexes.push([Number(data[1].split("/")[1])-1,Number(data[2].split("/")[1])-1,Number(data[3].split("/")[1])-1]);
                     }
                     else
                         faces.push([Number(data[1])-1,Number(data[2])-1,Number(data[3])-1]);
@@ -169,6 +170,7 @@ class Loader
                         {
                             faces.push([Number(data[1].split("/")[0])-1,Number(data[2+j].split("/")[0])-1,Number(data[3+j].split("/")[0])-1]);
                             facesNormalVectors.push([Number(data[1].split("/")[2])-1,Number(data[2+j].split("/")[2])-1,Number(data[3+j].split("/")[2])-1]);
+                            UVIndexes.push([Number(data[1].split("/")[1])-1,Number(data[2+j].split("/")[1])-1,Number(data[3+j].split("/")[1])-1]);
                         }
                         else
                             faces.push([Number(data[1])-1,Number(data[2+j])-1,Number(data[3+j])-1]);
@@ -182,6 +184,7 @@ class Loader
         {
             let vertexBaseIndex=vertexNum-currentVertexNum;
             let vertexNormalBaseIndex=vertexNormalNum-currentVertexNormalNum;
+            let vertexUVBaseIndex=vertexUVNum-currentVertexUVNum;
 
             //redinex faces
             for(let j=0;j<faces.length;j++)
@@ -201,6 +204,16 @@ class Loader
                 }
             }
 
+            if(UVIndexes.length!=0)
+            {
+                for(let j=0;j<UVIndexes.length;j++)
+                {
+                    UVIndexes[j][0]-=vertexUVBaseIndex;
+                    UVIndexes[j][1]-=vertexUVBaseIndex;
+                    UVIndexes[j][2]-=vertexUVBaseIndex;
+                }
+            }
+
             var newObject=window.main.genGameObject(vertex,faces,currentMeshName);
         }
         else if(state=="DEFAULT_MESH")
@@ -211,7 +224,7 @@ class Loader
         newObject.vertexNormalVectors=vertexNormal;
         newObject.facesNormalVectors=facesNormalVectors;
         newObject.vertexUV=vertexUV;
-        newObject.facesUV=UVIndexes;
+        newObject.UVIndexes=UVIndexes;
 
         newObject.materialName=materialName;
         newObject.scale=[10,10,10];
