@@ -291,8 +291,8 @@ class RenderPipeline
     //sample pixel of texture according to uv
     textureSample(texture,uv)
     {
-        var x=Math.round(uv[0]*texture.textureWidth);
-        var y=Math.round((1-uv[1])*texture.textureHeight);
+        var x=Math.round(uv[0]*(texture.textureWidth-1));
+        var y=Math.round((1-uv[1])*(texture.textureHeight-1));
 
         var index=(y*texture.textureWidth+x)*4
         var R=texture.textureData[index];
@@ -410,13 +410,19 @@ class RenderPipeline
 
             let lamada=barycentricInterpolate([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]],j,i);
             let RGBcolor;
+            let textureColor;
 
+            if(main.textureList.length!=0)
+            {
+                let texture=main.mtlMap[main.objectList[objectIndex].objectName];
+                let c1=this.textureSample(texture,this.vertexUV[UVIndexes[0]]);
+                let c2=this.textureSample(texture,this.vertexUV[UVIndexes[1]]);
+                let c3=this.textureSample(texture,this.vertexUV[UVIndexes[2]]);
+                textureColor=vector3Add(vector3Add(vector3multiply(c1,lamada[0]),vector3multiply(c2,lamada[1])),vector3multiply(c3,lamada[2]));
+            }
+            else
+                textureColor=[116,116,116];
 
-            let texture=main.mtlMap[main.objectList[objectIndex].objectName];
-            let c1=this.textureSample(texture,this.vertexUV[UVIndexes[0]]);
-            let c2=this.textureSample(texture,this.vertexUV[UVIndexes[1]]);
-            let c3=this.textureSample(texture,this.vertexUV[UVIndexes[2]]);
-            let textureColor=vector3Add(vector3Add(vector3multiply(c1,lamada[0]),vector3multiply(c2,lamada[1])),vector3multiply(c3,lamada[2]));
         
             if(this.shadingFrequency=="flat")
             {
@@ -549,7 +555,10 @@ class Main
         this.directionLight=normalize([-1,1,1]);
 
         this.objectList=[];
+
         this.textureList=[];
+        //default texture
+        this.defaultTexture=this.genTexture("default",Array.from({ length: 512*512*4 }, () => 116),512,512);
         this.mtlMap={"alas_kaki":"dress.png","baju":"dress.png","cd":"eyebrows_and_eyes.png","kalung":"dress.png","kerah":"dress.png",
             "Kubus.007":"hair_(2).png","Lingkaran":"dress.png","Lingkaran.003":"dress.png","NurbsPath.005":"hair_(2).png","NurbsPath.009":"hair_(1).png",
             "NurbsPath.016":"hair_(2).png","pita":"dress.png","Plane.005":"eyebrows_and_eyes.png","Plane.008":"eyebrows_and_eyes.png","rambut":"hair_(1).png",
@@ -577,7 +586,6 @@ class Main
             "ScaleY":(value)=>{this.objectList[this.selectedObject].scale[1]=Number(value);},
             "ScaleZ":(value)=>{this.objectList[this.selectedObject].scale[2]=Number(value);},
         }
-
     }
 
     genGameObject(vertex,faces,objectName)
@@ -603,7 +611,7 @@ class Main
             }
             else
             {
-                this.mtlMap[materialName]=null;
+                this.mtlMap[materialName]=this.defaultTexture;
             }
     
         }
