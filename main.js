@@ -1,5 +1,6 @@
 import {vector3Add, vector2Add, vector3DotProduct, normalize, vector3multiply, vector2multiply, lerp, barycentricInterpolate, crossProduct} from './math.js';
 import {Input} from './input.js';
+import {Debug} from './debug.js';
 
 //todo
 //pixel  selector
@@ -290,13 +291,13 @@ class RenderPipeline
     //sample pixel of texture according to uv
     textureSample(texture,uv)
     {
-        var x=Math.round(uv[0]*textureWidth);
-        var y=Math.round(uv[1]*textureHeight);
+        var x=Math.round(uv[0]*texture.textureWidth);
+        var y=Math.round((1-uv[1])*texture.textureHeight);
 
-        var index=(y*textureHeight+x)*4
-        var R=textureData[index];
-        var G=textureData[index+1];
-        var B=textureData[index+2];
+        var index=(y*texture.textureWidth+x)*4
+        var R=texture.textureData[index];
+        var G=texture.textureData[index+1];
+        var B=texture.textureData[index+2];
 
         return [R,G,B];
     }
@@ -380,14 +381,14 @@ class RenderPipeline
     }
 
     //split shading code from scanLine
-    blinnPhongShading(normalVector,face,lamada)
+    blinnPhongShading(diffuseColor,normalVector,face,lamada)
     {
         let wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],lamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],lamada[1]),vector3multiply(this.vertexWorld[face[2]],lamada[2])));
         let cameraDirection=normalize(vector3Add(this.cameraPos,vector3multiply(wordPos,-1)));
         let halfVector=normalize(vector3Add(this.directionLight,cameraDirection));
 
         let Ambient=[32,32,32];
-        let Diffuse=vector3multiply([0,188,212],Math.max(0,vector3DotProduct(normalVector,this.directionLight)));
+        let Diffuse=vector3multiply(diffuseColor,Math.max(0,vector3DotProduct(normalVector,this.directionLight)));//[0,188,212]
         let Specular=vector3multiply([255,255,255],Math.pow(Math.max(0,vector3DotProduct(normalVector,halfVector)),256));
 
         return vector3Add(vector3Add(Ambient,Diffuse),Specular)
@@ -405,27 +406,36 @@ class RenderPipeline
 
             let face= main.objectList[objectIndex].faces[this.IDBuffer[i][j]];
             let facesNormalVectors=main.objectList[objectIndex].facesNormalVectors[this.IDBuffer[i][j]];
+            let UVIndexes=main.objectList[objectIndex].UVIndexes[this.IDBuffer[i][j]];
+
             let lamada=barycentricInterpolate([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]],j,i);
             let RGBcolor;
-            
+
+
+            let texture=main.mtlMap[main.objectList[objectIndex].objectName];
+            let c1=this.textureSample(texture,this.vertexUV[UVIndexes[0]]);
+            let c2=this.textureSample(texture,this.vertexUV[UVIndexes[1]]);
+            let c3=this.textureSample(texture,this.vertexUV[UVIndexes[2]]);
+            let textureColor=vector3Add(vector3Add(vector3multiply(c1,lamada[0]),vector3multiply(c2,lamada[1])),vector3multiply(c3,lamada[2]));
+        
             if(this.shadingFrequency=="flat")
             {
                 let normalVector=this.faceNormalVectors[this.IDBuffer[i][j]];
                 normalVector=normalize(normalVector);
-                RGBcolor=this.blinnPhongShading(normalVector,face,lamada);
+                RGBcolor=this.blinnPhongShading(textureColor,normalVector,face,lamada);
             }
             else if(this.shadingFrequency=="gouraud")
             {
-                let c1=this.blinnPhongShading(this.vertexNormalVectors[face[0]],face,lamada);
-                let c2=this.blinnPhongShading(this.vertexNormalVectors[face[1]],face,lamada);
-                let c3=this.blinnPhongShading(this.vertexNormalVectors[face[2]],face,lamada);
+                let c1=this.blinnPhongShading(textureColor,this.vertexNormalVectors[face[0]],face,lamada);
+                let c2=this.blinnPhongShading(textureColor,this.vertexNormalVectors[face[1]],face,lamada);
+                let c3=this.blinnPhongShading(textureColor,this.vertexNormalVectors[face[2]],face,lamada);
                 RGBcolor=vector3Add(vector3Add(vector3multiply(c1,lamada[0]),vector3multiply(c2,lamada[1])),vector3multiply(c3,lamada[2]));
             }
             else if(this.shadingFrequency=="phong")
             {
                 let normalVector=vector3Add(vector3Add(vector3multiply(this.vertexNormalVectors[face[0]],lamada[0]),vector3multiply(this.vertexNormalVectors[face[1]],lamada[1])),vector3multiply(this.vertexNormalVectors[face[2]],lamada[2]));
                 normalVector=normalize(normalVector);
-                RGBcolor=this.blinnPhongShading(normalVector,face,lamada);
+                RGBcolor=this.blinnPhongShading(textureColor,normalVector,face,lamada);
                 
             }
 
@@ -453,6 +463,7 @@ class RenderPipeline
 
             this.vertex=nj.array(main.objectList[objectIndex].vertex).T;
             this.vertexNormalVectors=Array.from({ length: this.vertex.shape[1] }, () => Array(this.vertex.shape[0]).fill(0));
+	        this.vertexUV=main.objectList[objectIndex].vertexUV;
 
             this.transform(main.objectList[objectIndex]);
             this.vertexWorld=this.vertex.T.tolist();
@@ -539,8 +550,10 @@ class Main
 
         this.objectList=[];
         this.textureList=[];
-        this.mtlMap={"alas_kaki":"dress.png","baju":"dress.png","cd":"eyebrows_and_eyes.png","kalung":"eyebrows_and_eyes.png","kerah":"eyebrows_and_eyes.png",
-            "Kubus.007":"eyebrows_and_eyes.png","Lingkaran":"dress.png","Lingkaran.003":"","NurbsPath.005":"hair_(2).png","NurbsPath.009":"hair_(2).png"};
+        this.mtlMap={"alas_kaki":"dress.png","baju":"dress.png","cd":"eyebrows_and_eyes.png","kalung":"dress.png","kerah":"dress.png",
+            "Kubus.007":"hair_(2).png","Lingkaran":"dress.png","Lingkaran.003":"dress.png","NurbsPath.005":"hair_(2).png","NurbsPath.009":"hair_(1).png",
+            "NurbsPath.016":"hair_(2).png","pita":"dress.png","Plane.005":"eyebrows_and_eyes.png","Plane.008":"eyebrows_and_eyes.png","rambut":"hair_(1).png",
+            "tubuh":"body.png"};
         //selected object index
         this.selectedObject=null;
 
@@ -565,8 +578,6 @@ class Main
             "ScaleZ":(value)=>{this.objectList[this.selectedObject].scale[2]=Number(value);},
         }
 
-
-
     }
 
     genGameObject(vertex,faces,objectName)
@@ -577,6 +588,25 @@ class Main
     genTexture(textureName,textureData,textureWidth,textureHeight)
     {
         return new Texture(textureName,textureData,textureWidth,textureHeight);
+    }
+
+    initMtlMAP()
+    {
+        for(let materialName in this.mtlMap)
+        {
+            let textureName=this.mtlMap[materialName];
+            let result=this.textureList.find(texture=>texture.textureName==textureName);
+
+            if(result)
+            {
+                this.mtlMap[materialName]=result;
+            }
+            else
+            {
+                this.mtlMap[materialName]=null;
+            }
+    
+        }
     }
 }
 
@@ -599,4 +629,4 @@ document.getElementById('DepthMap').addEventListener('change', Input.DepthMap);
 document.getElementById('shaddingFrequency').addEventListener('change', Input.setShadingFrequency);
 document.getElementById('objectList').addEventListener('click', Input.selectedObject);
 
-main.canvas.addEventListener('click', Input.drawFace);
+main.canvas.addEventListener('click', Debug.drawFace);

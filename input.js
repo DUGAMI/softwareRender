@@ -196,38 +196,52 @@ class Input
         const files = event.target.files;
 
         const canvas = document.createElement('canvas');
+        let promises=[];
 
         for(let i=0;i<files.length;i++)
         {
             const reader = new FileReader();
 
-            reader.onload = function(e) {
+            promises.push(new Promise((resolve,reject)=>{
 
-                const img = new Image();
-                img.onload = function() {
+                reader.onload = function(e) {
 
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-
-                    // 绘制图片到Canvas
-                    ctx.drawImage(img, 0, 0);
-
-                    // 获取像素数据
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-                    let textureData = imageData.data;
-                    let textureWidth=img.width;
-                    let textureHeight=img.height;
-
-                    window.main.textureList.push(window.main.genTexture(files[i].name,textureData,textureWidth,textureHeight));
-
+                    const img = new Image();
+                    img.onload = function(){
+    
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+    
+                        // 绘制图片到Canvas
+                        ctx.drawImage(img, 0, 0);
+    
+                        // 获取像素数据
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    
+                        let textureData = imageData.data;
+                        let textureWidth=img.width;
+                        let textureHeight=img.height;
+    
+                        window.main.textureList.push(window.main.genTexture(files[i].name,textureData,textureWidth,textureHeight));
+    
+                        resolve();
+    
+                    };
+                    
+                    img.src = e.target.result;
                 };
-                img.src = e.target.result;
-            };
+                
+            }));
+            
 
             reader.readAsDataURL(files[i]);
         }
+
+        Promise.all(promises).then(results=>{
+            window.main.initMtlMAP();
+            console.log("texture loading finished");
+        });
     }
 
 }
