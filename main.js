@@ -27,6 +27,38 @@ class GameObject
     }
 }
 
+class Camera
+{
+    position=[0,0,0];
+    rotation=[0,0,0];
+    far=0;
+    near=0;
+    fovX=0;
+    fovY=0;
+
+    constructor(position,rotation,far,near,fovX,fovY)
+    {
+        this.position=position;
+        this.rotation=rotation;
+        this.far=far;
+        this.near=near;
+        this.fovX=fovX;
+        this.fovY=fovY;
+    }
+}
+
+class ViewPort
+{
+    canvasWidth=800;
+    canvasHeight=600;
+
+    constructor(canvasWidth,canvasHeight)
+    {
+        this.canvasWidth=canvasWidth;
+        this.canvasHeight=canvasHeight;
+    }
+}
+
 class Texture
 {
     textureName;
@@ -45,67 +77,43 @@ class Texture
 
 class RenderPipeline
 {
-    vertex=null;
-    vertexWorld=null;
+    vertex=[];
+    vertexUV=[];
+    vertexWorld=[];
+    faceNormalVectors=[];
+    vertexNormalVectors=[];
+    faceNormalVectors=[];
 
-    P=null;
-    transfromScreenMatrix=null;
-    transfromScreenMatrix=null;
     ZBuffer=null;
     imageData=null;
     buffer=null;
     ctx=null;
-
-    //transfromMatrix=null;
-    vertexUV=null;
-
-    cameraPos=null;
-    far=0;
-    near=0;
-    fovX=0;
-    fovY=0;
-
+    viewPort=null;
     pointLight=null;
-    directionLight=null;
+    renderingObject=null;
 
     shadingFrequency="flat";
-    faceNormalVectors;
     objectIndex;
-
+    
     constructor()
     {
-        this.canvasWidth=main.canvasWidth;
-        this.canvasHeight=main.canvasHeight;
-
-        this.cameraPos=main.cameraPos;
-        this.far=main.far;
-        this.near=main.near;
-        this.fovX=main.fovX;
-        this.fovY=main.fovY;
-
+        this.viewPort=main.viewPort;
         this.pointLight=main.pointLight;
-        this.directionLight=main.directionLight;
-
         this.fragmentShader=this.blinnPhongShader
-
         this.ctx=main.ctx;
-        this.P=this.Projection();
-        this.transfromScreenMatrix=nj.dot(this.Scale(this.canvasWidth/2,this.canvasHeight/2,1),this.translation(1,1,0));
-        this.transformCameraMatrix=nj.dot(this.Projection(),nj.dot(this.RotationY(-main.angleY),this.translation(-this.cameraPos[0],-this.cameraPos[1],-this.cameraPos[2])));
-        this.ZBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(1));
-        this.IDBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(-1));
-        this.ObjectBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(-1));
-        this.vertexUV=Array.from({ length: 8 }, () => Array(2).fill(0));
-        //this.faceUV=Array.from({ length: 12 }, () => Array(2).fill(0));
 
-        this.imageData = this.ctx.getImageData(0, 0, this.canvasWidth, this.canvasHeight);
+        this.ZBuffer=Array.from({ length: this.viewPort.canvasHeight }, () => Array(this.viewPort.canvasWidth).fill(1));
+        this.IDBuffer=Array.from({ length: this.viewPort.canvasHeight }, () => Array(this.viewPort.canvasWidth).fill(-1));
+        this.ObjectBuffer=Array.from({ length: this.viewPort.canvasHeight }, () => Array(this.viewPort.canvasWidth).fill(-1));
+
+        this.imageData = this.ctx.getImageData(0, 0, this.viewPort.canvasWidth, this.viewPort.canvasHeight);
         this.buffer = this.imageData.data;
     }
 
     // Function to draw a pixel
     drawPixel(x, y, color) {
 
-        var index = (y * this.canvasWidth + x) * 4;
+        var index = (y * this.viewPort.canvasWidth + x) * 4;
         this.buffer[index] = color;   // R
         this.buffer[index + 1] = color; // G
         this.buffer[index + 2] = color;   // B
@@ -114,15 +122,13 @@ class RenderPipeline
 
     drawPixelRGB(x, y, color){
 
-        var index = (y * this.canvasWidth + x) * 4;
+        var index = (y * this.viewPort.canvasWidth + x) * 4;
         this.buffer[index] = color[0];   // R
         this.buffer[index + 1] = color[1]; // G
         this.buffer[index + 2] = color[2];   // B
         this.buffer[index + 3] = 255; // A
 
     }
-
-    
 
     drawLine(v1,v2,color)
     {
@@ -174,43 +180,61 @@ class RenderPipeline
                         [0,0,0,1]]);
     }
 
-    Projection()
+    Projection(camera)
     {
-        return nj.array([[1/math.tan(this.fovX/2),0,0,0],
-                        [0,1/math.tan(this.fovY/2),0,0],
-                        [0,0,-(this.far+this.near)/(this.far-this.near),-(2*this.far*this.near)/(this.far-this.near)],
+        return nj.array([[1/math.tan(camera.fovX/2),0,0,0],
+                        [0,1/math.tan(camera.fovY/2),0,0],
+                        [0,0,-(camera.far+camera.near)/(camera.far-camera.near),-(2*camera.far*camera.near)/(camera.far-camera.near)],
                         [0,0,-1,0]]);
     } 
 
     transform(object)
     {
-        var S=this.Scale(object.scale[0],object.scale[1],object.scale[2]);
+        let vertex=nj.array(object.vertex).T;
 
-        var Rx=this.RotationX((object.rotation[0]/360)*2*math.PI);
-        var Ry=this.RotationY((object.rotation[1]/360)*2*math.PI);
-        var Rz=this.RotationZ((object.rotation[2]/360)*2*math.PI);
-        var R=nj.dot(Rz,nj.dot(Ry,Rx));
+        let S=this.Scale(object.scale[0],object.scale[1],object.scale[2]);
 
-        var T=this.translation(object.position[0],object.position[1],object.position[2]);
+        let Rx=this.RotationX((object.rotation[0]/360)*2*math.PI);
+        let Ry=this.RotationY((object.rotation[1]/360)*2*math.PI);
+        let Rz=this.RotationZ((object.rotation[2]/360)*2*math.PI);
+        let R=nj.dot(Rz,nj.dot(Ry,Rx));
 
-        var transfromMatrix=nj.dot(T,nj.dot(R,S));
+        let T=this.translation(object.position[0],object.position[1],object.position[2]);
 
-        this.vertex=nj.dot(transfromMatrix,this.vertex);
+        let transfromMatrix=nj.dot(T,nj.dot(R,S));
+
+        return nj.dot(transfromMatrix,vertex);
 
     }
 
-    transformCamera()
+    transformView(vertex,camera)
     {
-        this.vertex=nj.dot(this.transformCameraMatrix,this.vertex);
+        let Rx=this.RotationX((-camera.rotation[0]/360)*2*math.PI);
+        let Ry=this.RotationY((-camera.rotation[1]/360)*2*math.PI);
+        let Rz=this.RotationZ((-camera.rotation[2]/360)*2*math.PI);
+        let R=nj.dot(Rz,nj.dot(Ry,Rx));
 
-        var W=this.vertex.slice([3,4],null).T;
+        let T=this.translation(-camera.position[0],-camera.position[1],-camera.position[2]);
+
+        let transfromMatrix=nj.dot(T,R);        
+
+        return nj.dot(transfromMatrix,vertex);
+    }
+
+    transformProjection(vertex,camera)
+    {
+        let res=nj.dot(this.Projection(camera),vertex);
+
+        var W=res.slice([3,4],null).T;
         W=nj.concatenate(W,W,W,W).T;
-        this.vertex=nj.divide(this.vertex,W);
+
+        return nj.divide(res,W);
     }
 
-    transformScreen()
+    transformScreen(vertex,viewPort)
     {
-        this.vertex=nj.dot(this.transfromScreenMatrix,this.vertex);
+        let screenMatrix=nj.dot(this.Scale(viewPort.canvasWidth/2,viewPort.canvasHeight/2,1),this.translation(1,1,0))
+        return nj.dot(screenMatrix,vertex);
     }
 
     generateFaceNormalVector()
@@ -235,30 +259,31 @@ class RenderPipeline
         }
     }
 
-    generateNormalVector()
+    generateNormalVector(object,vertexWorld)
     {
-        //var normalVectors=Array.from({ length: this.vertex.shape[0] }, () => Array(this.vertex.shape[1]).fill(0));
-        var vertex=this.vertex.T.tolist();
-        var facePerVertex=Array(vertex.length).fill(0);
+        let vertex=vertexWorld.T.tolist();
+        let facePerVertex=Array(vertex.length).fill(0);
+        let vertexNormalVectors=Array.from({ length: vertex.length }, () => Array(3).fill(0));
+        let faceNormalVectors=Array.from({ length: object.faces.length }, () => Array(3).fill(0));
 
         //generate normal vector with face
-        for(let i=0;i<main.objectList[this.objectIndex].faces.length;i++)
+        for(let i=0;i<object.faces.length;i++)
         {
-            var face=main.objectList[this.objectIndex].faces[i];
+            let face=object.faces[i];
 
-            var A=vertex[face[0]];
-            var B=vertex[face[1]];
-            var C=vertex[face[2]];
+            let A=vertex[face[0]];
+            let B=vertex[face[1]];
+            let C=vertex[face[2]];
 
-            var AB=[B[0]-A[0],B[1]-A[1],B[2]-A[2]];
-            var AC=[C[0]-A[0],C[1]-A[1],C[2]-A[2]];
+            let AB=[B[0]-A[0],B[1]-A[1],B[2]-A[2]];
+            let AC=[C[0]-A[0],C[1]-A[1],C[2]-A[2]];
 
-            var normalVector=crossProduct(AB,AC);
-            this.faceNormalVectors[i]=normalVector;
+            let normalVector=crossProduct(AB,AC);
+            faceNormalVectors[i]=normalVector;
 
-            this.vertexNormalVectors[face[0]]=vector3Add(this.vertexNormalVectors[face[0]],normalVector);
-            this.vertexNormalVectors[face[1]]=vector3Add(this.vertexNormalVectors[face[1]],normalVector);
-            this.vertexNormalVectors[face[2]]=vector3Add(this.vertexNormalVectors[face[2]],normalVector);
+            vertexNormalVectors[face[0]]=vector3Add(vertexNormalVectors[face[0]],normalVector);
+            vertexNormalVectors[face[1]]=vector3Add(vertexNormalVectors[face[1]],normalVector);
+            vertexNormalVectors[face[2]]=vector3Add(vertexNormalVectors[face[2]],normalVector);
 
             facePerVertex[face[0]]+=1;
             facePerVertex[face[1]]+=1;
@@ -266,10 +291,12 @@ class RenderPipeline
         }
 
         //calculate noram vector of vertex(mean of normal vector)
-        for(let i=0;i<this.vertexNormalVectors.length;i++)
+        for(let i=0;i<vertexNormalVectors.length;i++)
         {
-            this.vertexNormalVectors[i]=normalize([this.vertexNormalVectors[i][0]/facePerVertex[i],this.vertexNormalVectors[i][1]/facePerVertex[i],this.vertexNormalVectors[i][2]/facePerVertex[i]]);
+            vertexNormalVectors[i]=normalize([vertexNormalVectors[i][0]/facePerVertex[i],vertexNormalVectors[i][1]/facePerVertex[i],vertexNormalVectors[i][2]/facePerVertex[i]]);
         }
+
+        return {"vertex":vertexNormalVectors,"face":faceNormalVectors};
 
     }
 
@@ -302,35 +329,33 @@ class RenderPipeline
         return [R,G,B];
     }
 
-    scanLine(face)
+    scanLine(vertexs)
     {
-        var vertexs=[this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]];
+        let facePixel=[];
 
-        var facePixel=[];
-
-        var maxY=Math.floor(Math.max(vertexs[0][1],vertexs[1][1],vertexs[2][1]));
-        var minY=Math.floor(Math.min(vertexs[0][1],vertexs[1][1],vertexs[2][1]));
+        let maxY=Math.floor(Math.max(vertexs[0][1],vertexs[1][1],vertexs[2][1]));
+        let minY=Math.floor(Math.min(vertexs[0][1],vertexs[1][1],vertexs[2][1]));
 
         for(let scanY=minY;scanY<=maxY;scanY++)
         {
             //skip scanline out of canvas
-            if(scanY<0||scanY>=this.canvasHeight)
+            if(scanY<0||scanY>=this.viewPort.canvasHeight)
                 continue;
 
-            var intersections=[];
+            let intersections=[];
 
             for(let i=0;i<3;i++)
             {
-                var v1=vertexs[i];
-                var v2=vertexs[(i+1)%3];
+                let v1=vertexs[i];
+                let v2=vertexs[(i+1)%3];
 
-                var yMinEdge = Math.min(v1[1], v2[1]);
-                var yMaxEdge = Math.max(v1[1], v2[1]);
+                let yMinEdge = Math.min(v1[1], v2[1]);
+                let yMaxEdge = Math.max(v1[1], v2[1]);
 
                 if((scanY>=yMinEdge&&scanY<yMaxEdge)&&Math.abs(v1[1]-v2[1])>1e-5)
                 {
-                    var x=v1[0] + (scanY - v1[1]) * (v2[0] - v1[0]) / (v2[1] - v1[1]);
-                    var z=(1/v1[2]) + (scanY - v1[1]) * ((1/v2[2]) - (1/v1[2])) / (v2[1] - v1[1]);
+                    let x=v1[0] + (scanY - v1[1]) * (v2[0] - v1[0]) / (v2[1] - v1[1]);
+                    let z=(1/v1[2]) + (scanY - v1[1]) * ((1/v2[2]) - (1/v1[2])) / (v2[1] - v1[1]);
 
                     intersections.push([x,z]);
                 }
@@ -340,19 +365,19 @@ class RenderPipeline
             {
                 intersections.sort((a,b)=>a[0]-b[0]);
 
-                var xleft=Math.floor(intersections[0][0]);
-                var xRight=Math.floor(intersections[1][0]);
+                let xleft=Math.floor(intersections[0][0]);
+                let xRight=Math.floor(intersections[1][0]);
 
-                var zleft=intersections[0][1];
-                var zRight=intersections[1][1];
+                let zleft=intersections[0][1];
+                let zRight=intersections[1][1];
 
                 for(let i=xleft;i<=xRight;i++)
                 {
                     //skip pixel out of canvas
-                    if(i<0||i>=this.canvasWidth)
+                    if(i<0||i>=this.viewPort.canvasWidth)
                         continue;
 
-                    var z=1/(zleft + (i-xleft) * (zRight - zleft) / (xRight - xleft));
+                    let z=1/(zleft + (i-xleft) * (zRight - zleft) / (xRight - xleft));
                     facePixel.push([i,scanY,z]);
                 }
             }
@@ -375,7 +400,7 @@ class RenderPipeline
             {
                 this.ZBuffer[scanY][i]=z;
                 this.IDBuffer[scanY][i]=index;
-                this.ObjectBuffer[scanY][i]=this.objectIndex;
+                this.ObjectBuffer[scanY][i]=this.renderingObject;
             }
         }
     }
@@ -384,11 +409,11 @@ class RenderPipeline
     blinnPhongShading(diffuseColor,normalVector,face,lamada)
     {
         let wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],lamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],lamada[1]),vector3multiply(this.vertexWorld[face[2]],lamada[2])));
-        let cameraDirection=normalize(vector3Add(this.cameraPos,vector3multiply(wordPos,-1)));
-        let halfVector=normalize(vector3Add(this.directionLight,cameraDirection));
+        let cameraDirection=normalize(vector3Add(main.MainCamera.position,vector3multiply(wordPos,-1)));
+        let halfVector=normalize(vector3Add(main.directionLight,cameraDirection));
 
         let Ambient=[32,32,32];
-        let Diffuse=vector3multiply(diffuseColor,Math.max(0,vector3DotProduct(normalVector,this.directionLight)));//[0,188,212]
+        let Diffuse=vector3multiply(diffuseColor,Math.max(0,vector3DotProduct(normalVector,main.directionLight)));//[0,188,212]
         let Specular=vector3multiply([255,255,255],Math.pow(Math.max(0,vector3DotProduct(normalVector,halfVector)),256));
 
         return vector3Add(vector3Add(Ambient,Diffuse),Specular)
@@ -399,14 +424,14 @@ class RenderPipeline
         if(this.ZBuffer[i][j]<1)
         {
             //数据之间的引用关系太复杂了，感觉要优化一下
-            let objectIndex=this.ObjectBuffer[i][j];
+            let object=this.ObjectBuffer[i][j];
             
-            if(objectIndex!=this.objectIndex)
+            if(object!=this.renderingObject)
                 return;
 
-            let face= main.objectList[objectIndex].faces[this.IDBuffer[i][j]];
-            let facesNormalVectors=main.objectList[objectIndex].facesNormalVectors[this.IDBuffer[i][j]];
-            let UVIndexes=main.objectList[objectIndex].UVIndexes[this.IDBuffer[i][j]];
+            let face= this.renderingObject.faces[this.IDBuffer[i][j]];
+            let facesNormalVectors=this.renderingObject.facesNormalVectors[this.IDBuffer[i][j]];
+            let UVIndexes=this.renderingObject.UVIndexes[this.IDBuffer[i][j]];
 
             let lamada=barycentricInterpolate([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]],j,i);
             let RGBcolor;
@@ -414,7 +439,7 @@ class RenderPipeline
 
             if(main.textureList.length!=0)
             {
-                let texture=main.mtlMap[main.objectList[objectIndex].objectName];
+                let texture=main.mtlMap[this.renderingObject.objectName];
                 let c1=this.textureSample(texture,this.vertexUV[UVIndexes[0]]);
                 let c2=this.textureSample(texture,this.vertexUV[UVIndexes[1]]);
                 let c3=this.textureSample(texture,this.vertexUV[UVIndexes[2]]);
@@ -456,66 +481,65 @@ class RenderPipeline
         this.drawPixelRGB(j,i,[colorValue,colorValue,colorValue]);   
     }
 
+    //讲真，我写的很奇怪，我应该写三个生成MVT矩阵的函数，然后一次性进行顶点变换的
     draw()
     {
+        
+        this.vertex=this.transform(this.renderingObject);
+        this.vertexWorld=this.vertex.T.tolist();
+        this.vertexUV=this.renderingObject.vertexUV;
+
+        let result=this.generateNormalVector(this.renderingObject,this.vertex);
+        this.vertexNormalVectors=result["vertex"];
+        this.faceNormalVectors=result["face"];
+
+        // if(this.renderingObject.vertexNormalVectors.length!=0)
+        //     this.vertexNormalVectors=this.renderingObject.vertexNormalVectors;
+
+        this.vertex=this.transformView(this.vertex,main.MainCamera);
+        this.vertex=this.transformProjection(this.vertex,main.MainCamera);
+        this.vertex=this.transformScreen(this.vertex,this.viewPort);
+
+        this.vertex=this.vertex.T;
+
+        //取xy坐标
+        var col0=this.vertex.slice(null,[0,1]);
+        var col1=nj.subtract(nj.ones([this.vertex.shape[0],1]).multiply(this.viewPort.canvasHeight),this.vertex.slice(null,[1,2]));
+        var col2=this.vertex.slice(null,[2,3]);
+        this.vertex=nj.concatenate(col0,col1,col2).tolist();
+
+
+        for(let j=0;j<this.renderingObject.faces.length;j++)
+        {
+            let face=this.renderingObject.faces[j];
+            let fragment=this.scanLine([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]]);
+            this.depthTest(fragment,j);
+        }
+
+        //fragment shading
+        for(let i=0;i<this.viewPort.canvasHeight;i++)
+        {
+            for(let j=0;j<this.viewPort.canvasWidth;j++)
+            {
+                this.fragmentShader(i,j);
+            }
+        }
+
+        this.ctx.putImageData(this.imageData, 0, 0);
+
+    }
+
+    drawScene()
+    {
         this.buffer.fill(0);
-        this.ZBuffer=Array.from({ length: this.canvasHeight }, () => Array(this.canvasWidth).fill(1));
+        for(let line of this.ZBuffer)
+            line.fill(1);
 
         for(let objectIndex=0;objectIndex<main.objectList.length;objectIndex++)
         {
-
-            this.objectIndex=objectIndex;
-            this.faceNormalVectors=Array.from({ length: main.objectList[objectIndex].faces.length }, () => Array(3).fill(0));
-
-            this.vertex=nj.array(main.objectList[objectIndex].vertex).T;
-            this.vertexNormalVectors=Array.from({ length: this.vertex.shape[1] }, () => Array(this.vertex.shape[0]).fill(0));
-	        this.vertexUV=main.objectList[objectIndex].vertexUV;
-
-            this.transform(main.objectList[objectIndex]);
-            this.vertexWorld=this.vertex.T.tolist();
-
-            //nomarl vector
-            this.generateNormalVector();
-            // if(main.objectList[objectIndex].vertexNormalVectors.length!=0)
-            //     this.vertexNormalVectors=main.objectList[objectIndex].vertexNormalVectors;
-
-            this.transformCamera();
-            this.transformScreen();
-
-            this.vertex=this.vertex.T;
-
-            //取xy坐标
-            var col0=this.vertex.slice(null,[0,1]);
-            var col1=nj.subtract(nj.ones([this.vertex.shape[0],1]).multiply(this.canvasHeight),this.vertex.slice(null,[1,2]));
-            var col3=this.vertex.slice(null,[2,3]);
-            this.vertex=nj.concatenate(col0,col1,col3).tolist();
-
-
-            for(let j=0;j<main.objectList[objectIndex].faces.length;j++)
-            {
-                let face=main.objectList[objectIndex].faces[j];
-                let fragment=this.scanLine(face);
-                this.depthTest(fragment,j);
-            }
-
-            //fragment shading
-            for(let i=0;i<this.canvasHeight;i++)
-            {
-                for(let j=0;j<this.canvasWidth;j++)
-                {
-                    this.fragmentShader(i,j);
-                }
-            }
-
-            this.ctx.putImageData(this.imageData, 0, 0);
-
-            //顶点标签
-            //for(let i=0;i<this.vertex.length;i++)
-                //ctx.fillText((i).toString(),this.vertex[i][0],this.vertex[i][1]);
-
-            //break;
+            this.renderingObject=main.objectList[objectIndex];
+            this.draw();
         }
-
     }
 
 }
@@ -534,21 +558,11 @@ class Main
 
     constructor()
     {
-        this.canvasWidth=800;
-        this.canvasHeight=600;
+        this.viewPort=new ViewPort(800,600);
         this.sqr2=math.sqrt(2);
 
-        //camera settings
-        this.angleY=0;
-        this.angleX=0;
-        this.angleZ=0;
-
         //view frustum parameters
-        this.cameraPos=[0,20,50];
-        this.far=80;
-        this.near=10;
-        this.fovX=math.PI/2;
-        this.fovY=math.PI/2;
+        this.MainCamera=new Camera([0,20,50],[0,0,0],80,10,math.PI/2,math.PI/2);
 
         //light settings
         this.pointLight=[0,20,20];
@@ -570,8 +584,8 @@ class Main
         this.ctx = this.canvas.getContext('2d');
         this.slider= document.getElementById('slider');
 
-        this.canvas.setAttribute("width",this.canvasWidth);
-        this.canvas.setAttribute("height",this.canvasHeight);
+        this.canvas.setAttribute("width",this.viewPort.canvasWidth);
+        this.canvas.setAttribute("height",this.viewPort.canvasHeight);
 
         this.IDList=["PositionX","PositionY","PositionZ","RotationX","RotationY","RotationZ","ScaleX","ScaleY","ScaleZ"];
 

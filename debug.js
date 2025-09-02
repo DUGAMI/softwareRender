@@ -11,10 +11,8 @@ class Debug
         var x=event.clientX - rect.left;
         var y=event.clientY - rect.top;
 
-        let objectID=window.main.pipeline.ObjectBuffer[y][x];
+        let object=window.main.pipeline.ObjectBuffer[y][x];
         let faceIndex=window.main.pipeline.IDBuffer[y][x];
-
-        let object=window.main.objectList[objectID];
 
         let textureName=window.main.mtlMap[object.objectName].textureName;
         let faceUV=object.UVIndexes[faceIndex];
