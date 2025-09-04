@@ -123,7 +123,8 @@ class Input
             
             reader.onload = function(e) 
             {
-                Loader.objLoader(e,fileName);
+                let loader=new Loader();
+                loader.objLoader(e,fileName);
 
                 //manipulate html and css of page
                 let li=document.createElement("li");

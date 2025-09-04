@@ -19,6 +19,9 @@ class GameObject
     vertexUV=[];
     UVIndexes=[];
 
+    parentTransformMartix=[];
+    childList=[];
+
     constructor(vertex,faces,objectName)
     {
         this.vertex=vertex;
@@ -180,6 +183,15 @@ class RenderPipeline
                         [0,0,0,1]]);
     }
 
+    
+    IdentityMatrix()
+    {
+        return nj.array([[1,0,0,0],
+                        [0,1,0,0],
+                        [0,0,1,0],
+                        [0,0,0,1]]);
+    }
+
     Projection(camera)
     {
         return nj.array([[1/math.tan(camera.fovX/2),0,0,0],
@@ -206,6 +218,21 @@ class RenderPipeline
         return nj.dot(transfromMatrix,vertex);
 
     }
+
+    transformMartix(transform)
+    {
+        let S=this.Scale(transform[2][0],transform[2][1],transform[2][2]);
+
+        let Rx=this.RotationX((transform[1][0]/360)*2*math.PI);
+        let Ry=this.RotationY((transform[1][1]/360)*2*math.PI);
+        let Rz=this.RotationZ((transform[1][2]/360)*2*math.PI);
+        let R=nj.dot(Rz,nj.dot(Ry,Rx));
+
+        let T=this.translation(transform[0][0],transform[0][1],transform[0][2]);
+
+        return nj.dot(T,nj.dot(R,S));
+    }
+
 
     transformView(vertex,camera)
     {
@@ -482,50 +509,62 @@ class RenderPipeline
     }
 
     //讲真，我写的很奇怪，我应该写三个生成MVT矩阵的函数，然后一次性进行顶点变换的
-    draw()
+    draw(renderingObject,parentMatrix)
     {
-        
-        this.vertex=this.transform(this.renderingObject);
-        this.vertexWorld=this.vertex.T.tolist();
-        this.vertexUV=this.renderingObject.vertexUV;
+        console.log(renderingObject.objectName);
+        let transformMatrix=nj.dot(parentMatrix,this.transformMartix([renderingObject.position,renderingObject.rotation,renderingObject.scale])); 
 
-        let result=this.generateNormalVector(this.renderingObject,this.vertex);
-        this.vertexNormalVectors=result["vertex"];
-        this.faceNormalVectors=result["face"];
-
-        // if(this.renderingObject.vertexNormalVectors.length!=0)
-        //     this.vertexNormalVectors=this.renderingObject.vertexNormalVectors;
-
-        this.vertex=this.transformView(this.vertex,main.MainCamera);
-        this.vertex=this.transformProjection(this.vertex,main.MainCamera);
-        this.vertex=this.transformScreen(this.vertex,this.viewPort);
-
-        this.vertex=this.vertex.T;
-
-        //取xy坐标
-        var col0=this.vertex.slice(null,[0,1]);
-        var col1=nj.subtract(nj.ones([this.vertex.shape[0],1]).multiply(this.viewPort.canvasHeight),this.vertex.slice(null,[1,2]));
-        var col2=this.vertex.slice(null,[2,3]);
-        this.vertex=nj.concatenate(col0,col1,col2).tolist();
-
-
-        for(let j=0;j<this.renderingObject.faces.length;j++)
+        if(renderingObject.vertex.length!=0)
         {
-            let face=this.renderingObject.faces[j];
-            let fragment=this.scanLine([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]]);
-            this.depthTest(fragment,j);
-        }
 
-        //fragment shading
-        for(let i=0;i<this.viewPort.canvasHeight;i++)
-        {
-            for(let j=0;j<this.viewPort.canvasWidth;j++)
+            this.vertex=nj.dot(transformMatrix,nj.array(renderingObject.vertex).T);
+            this.vertexWorld=this.vertex.T.tolist();
+            this.vertexUV=renderingObject.vertexUV;
+
+            let result=this.generateNormalVector(renderingObject,this.vertex);
+            this.vertexNormalVectors=result["vertex"];
+            this.faceNormalVectors=result["face"];
+
+            // if(renderingObject.vertexNormalVectors.length!=0)
+            //     this.vertexNormalVectors=renderingObject.vertexNormalVectors;
+
+            this.vertex=this.transformView(this.vertex,main.MainCamera);
+            this.vertex=this.transformProjection(this.vertex,main.MainCamera);
+            this.vertex=this.transformScreen(this.vertex,this.viewPort);
+
+            this.vertex=this.vertex.T;
+
+            //取xy坐标
+            var col0=this.vertex.slice(null,[0,1]);
+            var col1=nj.subtract(nj.ones([this.vertex.shape[0],1]).multiply(this.viewPort.canvasHeight),this.vertex.slice(null,[1,2]));
+            var col2=this.vertex.slice(null,[2,3]);
+            this.vertex=nj.concatenate(col0,col1,col2).tolist();
+
+
+            for(let j=0;j<renderingObject.faces.length;j++)
             {
-                this.fragmentShader(i,j);
+                let face=renderingObject.faces[j];
+                let fragment=this.scanLine([this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]]);
+                this.depthTest(fragment,j);
             }
+
+            //fragment shading
+            for(let i=0;i<this.viewPort.canvasHeight;i++)
+            {
+                for(let j=0;j<this.viewPort.canvasWidth;j++)
+                {
+                    this.fragmentShader(i,j);
+                }
+            }
+
+            this.ctx.putImageData(this.imageData, 0, 0);
         }
 
-        this.ctx.putImageData(this.imageData, 0, 0);
+        for(let object of renderingObject.childList)
+        {
+            this.renderingObject=object;
+            this.draw(object,transformMatrix);
+        }
 
     }
 
@@ -538,7 +577,7 @@ class RenderPipeline
         for(let objectIndex=0;objectIndex<main.objectList.length;objectIndex++)
         {
             this.renderingObject=main.objectList[objectIndex];
-            this.draw();
+            this.draw(this.renderingObject,this.IdentityMatrix());
         }
     }
 

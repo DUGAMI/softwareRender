@@ -20,133 +20,94 @@ class Loader
     // 根据UV坐标索引获取UV坐标，然后从对应的材质=>纹理里采样
     // 在渲染某个像素时，获取对应面的三个顶点的RGB值，然后插值
 
-    static objLoader(e,fileName)
+    object=null;
+
+    vertex=[];
+    vertexNormal=[];
+    vertexUV=[];
+
+    faces=[];
+    facesNormalVectors=[];
+    UVIndexes=[];
+
+    materialName="";
+
+    vertexNum=0;
+    currentVertexNum=0;
+    vertexNormalNum=0;
+    currentVertexNormalNum=0;
+    vertexUVNum=0;
+    currentVertexUVNum=0;
+
+    currentMeshName="";
+    state="DEFAULT_MESH";
+
+
+    objLoader(e,fileName)
     {
         let result=e.target.result;
         let lines=result.split("\n");
 
-        let vertex=[];
-        let vertexNormal=[];
-        let vertexUV=[];
-
-        let faces=[];
-        let facesNormalVectors=[];
-        let UVIndexes=[];
-
-        let materialName="";
-
-        let vertexNum=0;
-        let currentVertexNum=0;
-        let vertexNormalNum=0;
-        let currentVertexNormalNum=0;
-        let vertexUVNum=0;
-        let currentVertexUVNum=0;
-
-        let currentMeshName="";
-        let state="DEFAULT_MESH";
-
-
         for(let i=0;i<lines.length;i++)
         {
-            var data=lines[i].split(" ");
+            let data=lines[i].split(" ");
 
-            if(data[0]=='o'&&state=="DEFAULT_MESH")
+            if(data[0]=='o'&&this.state=="DEFAULT_MESH")
             {
-                state="MULTI_MESH";
-                currentMeshName=data[1];
-                continue;
-            }
-            else if(data[0]=='o'&&state=="MULTI_MESH")
-            {   
-                let vertexBaseIndex=vertexNum-currentVertexNum;
-                let vertexNormalBaseIndex=vertexNormalNum-currentVertexNormalNum;
-                let vertexUVBaseIndex=vertexUVNum-currentVertexUVNum;
+                this.state="MULTI_MESH";
+                this.currentMeshName=data[1];
 
-                //redinex faces
-                for(let j=0;j<faces.length;j++)
-                {
-                    faces[j][0]-=vertexBaseIndex;
-                    faces[j][1]-=vertexBaseIndex;
-                    faces[j][2]-=vertexBaseIndex;
-                }
+                this.object=window.main.genGameObject([],[],fileName);
+                this.object.scale=[10,10,10];
+                this.object.position=[0,0,0];
 
-                if(facesNormalVectors.length!=0)
-                {
-                    for(let j=0;j<facesNormalVectors.length;j++)
-                    {
-                        facesNormalVectors[j][0]-=vertexNormalBaseIndex;
-                        facesNormalVectors[j][1]-=vertexNormalBaseIndex;
-                        facesNormalVectors[j][2]-=vertexNormalBaseIndex;
-                    }
-                }
-
-                if(UVIndexes.length!=0)
-                {
-                    for(let j=0;j<UVIndexes.length;j++)
-                    {
-                        UVIndexes[j][0]-=vertexUVBaseIndex;
-                        UVIndexes[j][1]-=vertexUVBaseIndex;
-                        UVIndexes[j][2]-=vertexUVBaseIndex;
-                    }
-                }
-
-                //update object list and selected object
-                var newObject=window.main.genGameObject(vertex,faces,currentMeshName);
-                newObject.vertexNormalVectors=vertexNormal;
-                newObject.facesNormalVectors=facesNormalVectors;
-                newObject.vertexUV=vertexUV;
-                newObject.UVIndexes=UVIndexes;
-
-                newObject.materialName=materialName;
-                newObject.scale=[10,10,10];
-                newObject.position=[0,0,0];
-
-                window.main.objectList.push(newObject);
+                window.main.objectList.push(this.object);
                 window.main.selectedObject=window.main.objectList.length-1;
 
-                vertex=[];
-                vertexNormal=[];
-                vertexUV=[];
-                faces=[];
-                facesNormalVectors=[];
-                UVIndexes=[];
+                continue;
+            }
+            else if(data[0]=='o'&&this.state=="MULTI_MESH")
+            {   
+                //add object to child list
+                this.rebase();
 
-                currentVertexNum=0;
-                currentVertexNormalNum=0;
-                currentVertexUVNum=0;
-                
-                currentMeshName=data[1];
+                let newObject=window.main.genGameObject(this.vertex,this.faces,this.currentMeshName);
+                this.object.childList.push(this.genGameObject(newObject));
+
+                this.initMeshVaribles();
+
+                this.currentMeshName=data[1];
                 continue;
             }
 
             
             if(data[0]=='v')
             {
-                vertex.push([Number(data[1]),Number(data[2]),Number(data[3]),1]);
-                vertexNum++;
+                this.vertex.push([Number(data[1]),Number(data[2]),Number(data[3]),1]);
+                this.vertexNum++;
 
-                if(state=="MULTI_MESH")
-                    currentVertexNum++;
+                if(this.state=="MULTI_MESH")
+                    this.currentVertexNum++;
             }
             else if(data[0]=='vn')
             {
-                vertexNormal.push([Number(data[1]),Number(data[2]),Number(data[3])]);
-                vertexNormalNum++;
+                this.vertexNormal.push([Number(data[1]),Number(data[2]),Number(data[3])]);
+                this.vertexNormalNum++;
 
-                if(state=="MULTI_MESH")
-                    currentVertexNormalNum++;
+                if(this.state=="MULTI_MESH")
+                    this.currentVertexNormalNum++;
             }
             else if(data[0]=='vt')
             {
-                vertexUV.push([Number(data[1]),Number(data[2])]);
-                vertexUVNum++;
+                this.vertexUV.push([Number(data[1]),Number(data[2])]);
+                this.vertexUVNum++;
 
-                if(state=="MULTI_MESH")
-                    currentVertexUVNum++;
+                if(this.state=="MULTI_MESH")
+                    this.currentVertexUVNum++;
             }
             else if(data[0]=='usemtl')
             {
-                materialName=data[1];
+                this.materialName=data[1];
             }
             else if(data[0]=='f')
             {
@@ -154,12 +115,12 @@ class Loader
                 {
                     if(data[1].includes("/"))
                     {
-                        faces.push([Number(data[1].split("/")[0])-1,Number(data[2].split("/")[0])-1,Number(data[3].split("/")[0])-1]);
-                        facesNormalVectors.push([Number(data[1].split("/")[2])-1,Number(data[2].split("/")[2])-1,Number(data[3].split("/")[2])-1]);
-                        UVIndexes.push([Number(data[1].split("/")[1])-1,Number(data[2].split("/")[1])-1,Number(data[3].split("/")[1])-1]);
+                        this.faces.push([Number(data[1].split("/")[0])-1,Number(data[2].split("/")[0])-1,Number(data[3].split("/")[0])-1]);
+                        this.facesNormalVectors.push([Number(data[1].split("/")[2])-1,Number(data[2].split("/")[2])-1,Number(data[3].split("/")[2])-1]);
+                        this.UVIndexes.push([Number(data[1].split("/")[1])-1,Number(data[2].split("/")[1])-1,Number(data[3].split("/")[1])-1]);
                     }
                     else
-                        faces.push([Number(data[1])-1,Number(data[2])-1,Number(data[3])-1]);
+                        this.faces.push([Number(data[1])-1,Number(data[2])-1,Number(data[3])-1]);
                 }
                 else if(data.length-1>3)
                 {
@@ -168,69 +129,95 @@ class Loader
                     {
                         if(data[1].includes("/"))
                         {
-                            faces.push([Number(data[1].split("/")[0])-1,Number(data[2+j].split("/")[0])-1,Number(data[3+j].split("/")[0])-1]);
-                            facesNormalVectors.push([Number(data[1].split("/")[2])-1,Number(data[2+j].split("/")[2])-1,Number(data[3+j].split("/")[2])-1]);
-                            UVIndexes.push([Number(data[1].split("/")[1])-1,Number(data[2+j].split("/")[1])-1,Number(data[3+j].split("/")[1])-1]);
+                            this.faces.push([Number(data[1].split("/")[0])-1,Number(data[2+j].split("/")[0])-1,Number(data[3+j].split("/")[0])-1]);
+                            this.facesNormalVectors.push([Number(data[1].split("/")[2])-1,Number(data[2+j].split("/")[2])-1,Number(data[3+j].split("/")[2])-1]);
+                            this.UVIndexes.push([Number(data[1].split("/")[1])-1,Number(data[2+j].split("/")[1])-1,Number(data[3+j].split("/")[1])-1]);
                         }
                         else
-                            faces.push([Number(data[1])-1,Number(data[2+j])-1,Number(data[3+j])-1]);
+                            this.faces.push([Number(data[1])-1,Number(data[2+j])-1,Number(data[3+j])-1]);
                     }
                 }
             }
         }
 
         //last mesh or only one mesh
-        if(state=="MULTI_MESH")
+        if(this.state=="MULTI_MESH")
         {
-            let vertexBaseIndex=vertexNum-currentVertexNum;
-            let vertexNormalBaseIndex=vertexNormalNum-currentVertexNormalNum;
-            let vertexUVBaseIndex=vertexUVNum-currentVertexUVNum;
+            this.rebase();
 
-            //redinex faces
-            for(let j=0;j<faces.length;j++)
-            {
-                faces[j][0]-=vertexBaseIndex;
-                faces[j][1]-=vertexBaseIndex;
-                faces[j][2]-=vertexBaseIndex;
-            }
-
-            if(facesNormalVectors.length!=0)
-            {
-                for(let j=0;j<facesNormalVectors.length;j++)
-                {
-                    facesNormalVectors[j][0]-=vertexNormalBaseIndex;
-                    facesNormalVectors[j][1]-=vertexNormalBaseIndex;
-                    facesNormalVectors[j][2]-=vertexNormalBaseIndex;
-                }
-            }
-
-            if(UVIndexes.length!=0)
-            {
-                for(let j=0;j<UVIndexes.length;j++)
-                {
-                    UVIndexes[j][0]-=vertexUVBaseIndex;
-                    UVIndexes[j][1]-=vertexUVBaseIndex;
-                    UVIndexes[j][2]-=vertexUVBaseIndex;
-                }
-            }
-
-            var newObject=window.main.genGameObject(vertex,faces,currentMeshName);
+            let newObject=window.main.genGameObject(this.vertex,this.faces,this.currentMeshName);
+            this.object.childList.push(this.genGameObject(newObject));
         }
-        else if(state=="DEFAULT_MESH")
+        else if(this.state=="DEFAULT_MESH")
         {
-            var newObject=window.main.genGameObject(vertex,faces,fileName);
+            let newObject=window.main.genGameObject(this.vertex,this.faces,this.fileName);
+
+            window.main.objectList.push(this.genGameObject(newObject));
+            window.main.selectedObject=window.main.objectList.length-1;
         }
-        
-        newObject.vertexNormalVectors=vertexNormal;
-        newObject.facesNormalVectors=facesNormalVectors;
-        newObject.vertexUV=vertexUV;
-        newObject.UVIndexes=UVIndexes;
+    }
 
-        newObject.materialName=materialName;
-        newObject.scale=[10,10,10];
-        newObject.position=[0,0,0];
+    rebase()
+    {
+        let vertexBaseIndex=this.vertexNum-this.currentVertexNum;
+        let vertexNormalBaseIndex=this.vertexNormalNum-this.currentVertexNormalNum;
+        let vertexUVBaseIndex=this.vertexUVNum-this.currentVertexUVNum;
 
-        window.main.objectList.push(newObject);
-        window.main.selectedObject=window.main.objectList.length-1;
+        //redinex faces
+        for(let j=0;j<this.faces.length;j++)
+        {
+            this.faces[j][0]-=vertexBaseIndex;
+            this.faces[j][1]-=vertexBaseIndex;
+            this.faces[j][2]-=vertexBaseIndex;
+        }
+
+        if(this.facesNormalVectors.length!=0)
+        {
+            for(let j=0;j<this.facesNormalVectors.length;j++)
+            {
+                this.facesNormalVectors[j][0]-=vertexNormalBaseIndex;
+                this.facesNormalVectors[j][1]-=vertexNormalBaseIndex;
+                this.facesNormalVectors[j][2]-=vertexNormalBaseIndex;
+            }
+        }
+
+        if(this.UVIndexes.length!=0)
+        {
+            for(let j=0;j<this.UVIndexes.length;j++)
+            {
+                this.UVIndexes[j][0]-=vertexUVBaseIndex;
+                this.UVIndexes[j][1]-=vertexUVBaseIndex;
+                this.UVIndexes[j][2]-=vertexUVBaseIndex;
+            }
+        }
+
+    }
+
+    genGameObject(object)
+    {
+        object.vertexNormalVectors=this.vertexNormal;
+        object.facesNormalVectors=this.facesNormalVectors;
+        object.vertexUV=this.vertexUV;
+        object.UVIndexes=this.UVIndexes;
+
+        object.materialName=this.materialName;
+        object.scale=[10,10,10];
+        object.position=[0,0,0];
+
+        return object;
+    }
+
+    initMeshVaribles()
+    {
+        this.vertex=[];
+        this.vertexNormal=[];
+        this.vertexUV=[];
+        this.faces=[];
+        this.facesNormalVectors=[];
+        this.UVIndexes=[];
+
+        this.currentVertexNum=0;
+        this.currentVertexNormalNum=0;
+        this.currentVertexUVNum=0;
     }
 }
