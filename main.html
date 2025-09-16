@@ -2,585 +2,200 @@
     <head>
         <meta charset="UTF-8">
         <title>Software Render</title>
+        <script type="module" src="main.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/13.2.0/math.js"></script>
         <script src="https://cdn.jsdelivr.net/gh/nicolaspanel/numjs@0.15.1/dist/numjs.min.js"></script>
+
+        <style>
+            .main-window
+            {
+
+            }
+
+            .game-window
+            {
+                display: inline-block;
+
+                border-radius: 5px;
+                border-color: #ccc;
+                border-style: solid;
+                border-width: 2px;
+            }
+
+            .sidebar
+            {
+                display: inline-block;
+                vertical-align: top;
+
+                width: 250px;
+                height: 600px;
+
+                border-radius: 5px;
+                border-color: #ccc;
+                border-style: solid;
+                border-width: 2px;
+            }
+
+            .option-block
+            {
+                margin-top:10px;
+                margin-bottom:10px;
+            }
+
+            .transfrom-bar
+            {
+                display: flex;
+                justify-content: space-between;
+                margin-left: 10px;
+                margin-right: 10px;
+            }
+
+            .transform-panel
+            {
+                display: inline-block
+            }
+
+            .input
+            {
+                width: 30px;
+            }
+
+            .custom-list 
+            {
+                list-style: none; /* 去掉前面的圆点 */
+                padding: 0;
+            }
+
+            .custom-list li
+            {
+                padding: 0px 15px;
+                transition: all 0.3s ease; /* 添加过渡动画 */
+                cursor: pointer;
+                border-radius: 8px; /* 初始圆角（可调） */
+            }
+
+            .custom-list li:hover 
+            {
+                background-color: lightgrey; /* 背景纯白 */
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* 轻微阴影，突出高亮 */
+                border-radius: 12px; /* 鼠标悬停时更圆一些 */
+            }
+
+            .selected
+            {
+                background-color: lightgrey; /* 背景纯白 */
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* 轻微阴影，突出高亮 */
+                border-radius: 12px; /* 鼠标悬停时更圆一些 */
+            }
+
+
+        </style>
 
     </head>
     <body>
 
-        <canvas id="Canvas"></canvas>
-
-        <div>
-            <label for="slider">Rotation Yaxis</label>
-            <input type="range" id="slider" min="0" max="360" value="0">
-
-            <input type="file" id="fileInput">
-            <input type="file" id="material">
-
-            <div>
-                <label for="slider">pointLight Yaxis</label>
-                <input type="range" id="pointLighty" min="-50" max="50" value="10">
+        <div class="main-window">
+            <div class="sidebar">
+                <div class="option-block">
+                    <span>Object List</span>
+                    <ul id="objectList" class="custom-list">
+                        <!-- Object list will be populated here -->
+                    </ul>
+                </div>
             </div>
+            <div class="game-window">
+                <canvas id="Canvas"></canvas>
+            </div>
+            <div class="sidebar">
 
-            <div>
-                <label for="slider">pointLight Zaxis</label>
-                <input type="range" id="pointLightz" min="20" max="100" value="20">
+                <div style="margin-bottom: 10px;">
+
+                    <div class="option-block">
+                        <span>Render Option</span>
+
+                        <div class="transfrom-bar">
+
+                            <div class="transform-panel">
+
+                                    <div>
+                                        <input type="checkbox" id="DepthMap" name="DepthMap"/>
+                                        <label for="DepthMap">Depth Map</label>
+                                    </div>
+                                
+                                    <div>
+                                        <form id="shaddingFrequency">
+                                            <div>
+                                                <label><input type="radio" name="option" value="FlatShading" checked>Flat Shading</label>
+                                            </div>
+
+                                            <div>
+                                                <label><input type="radio" name="option" value="GouraudShading">Gouraud Shading</label>
+                                            </div>
+
+                                            <div>
+                                                <label><input type="radio" name="option" value="PhongShading">Phong Shading</label>
+                                            </div>
+                                        </form>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="option-block">
+                        <span>Transfrom</span>
+
+                        <div class="transfrom-bar">
+
+                            <span>Position</span>
+
+                            <div class="transform-panel">
+                                <div class="transform-panel" id="PositionX"><span>X</span><input class="input"></div>
+                                <div class="transform-panel" id="PositionY"><span>Y</span><input class="input"></div>
+                                <div class="transform-panel" id="PositionZ"><span>Z</span><input class="input"></div>
+                            </div>
+                        </div>
+
+                        <div class="transfrom-bar">
+
+                            <span>Rotation</span>
+
+                            <div class="transform-panel">
+                                <div class="transform-panel" id="RotationX"><span>X</span><input class="input"></div>
+                                <div class="transform-panel" id="RotationY"><span>Y</span><input class="input"></div>
+                                <div class="transform-panel" id="RotationZ"><span>Z</span><input class="input"></div>
+                            </div>
+                        </div>
+
+                        <div class="transfrom-bar">
+
+                            <span>Scale</span>
+
+                            <div class="transform-panel">
+                                <div class="transform-panel" id="ScaleX"><span>X</span><input class="input"></div>
+                                <div class="transform-panel" id="ScaleY"><span>Y</span><input class="input"></div>
+                                <div class="transform-panel" id="ScaleZ"><span>Z</span><input class="input"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label for="slider" id="sliderTitle">slide bar</label>
+                    <input type="range" id="slider" min="0" max="360" value="0">
+                </div>
+
+                <div>
+                    <button id="lerpRotation">lerpRotation</button>
+                </div>
+
             </div>
         </div>
 
-        <script>
-
-            //todo
-            //rendering order,material,faces,cut,light
-
-            //todo
-            //pixel  selector
-
-            //scanLine->barycentric interpolate
-
-            class GameObject
-            {
-                position=[0,0,0];
-                rotation=[0,0,0];
-                scale=[1,1,1];
-
-                constructor(vertex,faces)
-                {
-                    this.vertex=vertex;
-                    this.faces=faces;
-                }
-            }
-
-            class RenderPipeline
-            {
-                vertex=null;
-                vertexWorld=null;
-
-                P=null;
-                transfromScreenMatrix=null;
-                transfromScreenMatrix=null;
-                ZBuffer=null;
-                imageData=null;
-                buffer=null;
-
-                //transfromMatrix=null;
-                vertexUV=null;
-
-                constructor()
-                {
-                    this.P=this.Projection();
-                    this.transfromScreenMatrix=nj.dot(this.Scale(canvasWidth/2,canvasHeight/2,1),this.translation(1,1,0));
-                    this.transformCameraMatrix=nj.dot(this.Projection(),nj.dot(this.RotationY(-angleY),this.translation(-cameraPos[0],-cameraPos[1],-cameraPos[2])));
-                    this.ZBuffer=Array.from({ length: canvasHeight }, () => Array(canvasWidth).fill(1));
-                    this.faceNormalVectors=Array.from({ length: 12 }, () => Array(3).fill(0));
-                    this.vertexUV=Array.from({ length: 8 }, () => Array(2).fill(0));
-                    //this.faceUV=Array.from({ length: 12 }, () => Array(2).fill(0));
-
-                    this.imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
-                    this.buffer = this.imageData.data;
-
-                    this.vertexUV=[[0.5,0.5],[0,0.5],[0.5,0.5],[0,0.5],[0.5,0],[0,0],[0.5,0],[0,0]];
-                    this.faceUV=[[[0.5,0.5],[0.5,0],[0,0.5]],
-                                 [[0,0],[0,0.5],[0.5,0]],
-                                 [[0.5,0.5],[0.5,0],[0,0.5]],
-                                 [[0,0],[0,0.5],[0.5,0]],
-                                 [[0,0],[0,0.5],[0.5,0]],
-                                 [[0.5,0.5],[0.5,0],[0,0.5]],
-                                 [[0.5,0.5],[0.5,0],[0,0.5]],
-                                 [[0,0],[0,0.5],[0.5,0]],
-                                 [[0.5,1],[0.5,0.5],[0.,1]],
-                                 [[0,0.5],[0,1],[0.5,0.5]],
-                                 [[1,0.5],[0.5,0.5],[1,0]],
-                                 [[0.5,0],[1,0],[0.5,0.5]]];
-                }
-
-                // Function to draw a pixel
-                drawPixel(x, y, color) {
-
-                    var index = (y * canvasWidth + x) * 4;
-                    this.buffer[index] = color;   // R
-                    this.buffer[index + 1] = color; // G
-                    this.buffer[index + 2] = color;   // B
-                    this.buffer[index + 3] = 255; // A
-                }
-
-                drawPixelRGB(x, y, color){
-
-                    var index = (y * canvasWidth + x) * 4;
-                    this.buffer[index] = color[0];   // R
-                    this.buffer[index + 1] = color[1]; // G
-                    this.buffer[index + 2] = color[2];   // B
-                    this.buffer[index + 3] = 255; // A
-
-                }
-
-                
-
-                drawLine(v1,v2,color)
-                {
-                    ctx.strokeStyle=color
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(v1[0], v1[1]);
-                    ctx.lineTo(v2[0], v2[1]);
-                    ctx.stroke();
-                }
-
-                translation(x,y,z)
-                {
-                    return nj.array([[1,0,0,x],
-                                     [0,1,0,y],
-                                     [0,0,1,z],
-                                     [0,0,0,1]]);
-                }
-
-                RotationY(angle)
-                {
-                    return nj.array([[math.cos(angle),0,math.sin(angle),0],
-                                     [0,1,0,0],
-                                     [-math.sin(angle),0,math.cos(angle),0],
-                                     [0,0,0,1]]);
-                }
-
-                Scale(x,y,z)
-                {
-                    return nj.array([[x,0,0,0],
-                                     [0,y,0,0],
-                                     [0,0,z,0],
-                                     [0,0,0,1]]);
-                }
-
-                Projection()
-                {
-                    return nj.array([[1/math.tan(fovX/2),0,0,0],
-                                     [0,1/math.tan(fovY/2),0,0],
-                                     [0,0,-(far+near)/(far-near),-(2*far*near)/(far-near)],
-                                     [0,0,-1,0]]);
-                } 
-
-                transform(object)
-                {
-                    var S=this.Scale(object.scale[0],object.scale[1],object.scale[2]);
-                    var R=this.RotationY(lerp(0,2*math.PI,object.rotation[1]));
-                    var T=this.translation(object.position[0],object.position[1],object.position[2]);
-
-                    var transfromMatrix=nj.dot(T,nj.dot(R,S));
-
-                    this.vertex=nj.dot(transfromMatrix,this.vertex);
-
-                }
-
-                transformCamera()
-                {
-                    this.vertex=nj.dot(this.transformCameraMatrix,this.vertex);
-
-                    var W=this.vertex.slice([3,4],null).T;
-                    W=nj.concatenate(W,W,W,W).T;
-                    this.vertex=nj.divide(this.vertex,W);
-                }
-
-                transformScreen()
-                {
-                    this.vertex=nj.dot(this.transfromScreenMatrix,this.vertex);
-                }
-
-                generateNormalVector()
-                {
-                    //var normalVectors=Array.from({ length: this.vertex.shape[0] }, () => Array(this.vertex.shape[1]).fill(0));
-                    var vertex=this.vertex.T.tolist();
-                    var facePerVertex=Array(vertex.length).fill(0);
-
-                    //generate normal vector with face
-                    for(let i=0;i<objectList[0].faces.length;i++)
-                    {
-                        var face=objectList[0].faces[i];
-
-                        var A=vertex[face[0]];
-                        var B=vertex[face[1]];
-                        var C=vertex[face[2]];
-
-                        var AB=[B[0]-A[0],B[1]-A[1],B[2]-A[2]];
-                        var AC=[C[0]-A[0],C[1]-A[1],C[2]-A[2]];
-
-                        var normalVector=this.crossProduct(AB,AC);
-                        this.faceNormalVectors[i]=normalVector;
-
-                        this.vertexNormals[face[0]]=vector3Add(this.vertexNormals[face[0]],normalVector);
-                        this.vertexNormals[face[1]]=vector3Add(this.vertexNormals[face[1]],normalVector);
-                        this.vertexNormals[face[2]]=vector3Add(this.vertexNormals[face[2]],normalVector);
-
-                        facePerVertex[face[0]]+=1;
-                        facePerVertex[face[1]]+=1;
-                        facePerVertex[face[2]]+=1;
-                    }
-
-                    //calculate noram vector of vertex(mean of normal vector)
-                    for(let i=0;i<this.vertexNormals.length;i++)
-                    {
-                        this.vertexNormals[i]=normalize([this.vertexNormals[i][0]/facePerVertex[i],this.vertexNormals[i][1]/facePerVertex[i],this.vertexNormals[i][2]/facePerVertex[i]]);
-                    }
-
-                }
-
-                //gouraud shading
-                generateVertexColor()
-                {
-                    this.vertexColor=[];
-
-                    for(let i=0;i<this.vertexWorld.length;i++)
-                    {
-                        var lightDirection=normalize(vector3Add(pointLight,vector3multiply(this.vertexWorld[i],-1)));
-                        var normalVector=this.vertexNormals[i];
-
-                        this.vertexColor.push(Math.max(0,vector3DotProduct(lightDirection,normalVector)*255));
-                    }
-
-                }
-
-                //sample pixel of texture according to uv
-                textureSample(texture,uv)
-                {
-                    var x=Math.round(uv[0]*textureWidth);
-                    var y=Math.round(uv[1]*textureHeight);
-
-                    var index=(y*textureHeight+x)*4
-                    var R=textureData[index];
-                    var G=textureData[index+1];
-                    var B=textureData[index+2];
-
-                    return [R,G,B];
-                }
-
-
-                barycentricInterpolate(vertexs,x,y)
-                {
-                    var lamadaA=((vertexs[1][1]-vertexs[2][1])*(x-vertexs[2][0])+(vertexs[2][0]-vertexs[1][0])*(y-vertexs[2][1]))/
-                                    ((vertexs[1][1]-vertexs[2][1])*(vertexs[0][0]-vertexs[2][0])+(vertexs[2][0]-vertexs[1][0])*(vertexs[0][1]-vertexs[2][1]));
-
-                    var lamadaB=((vertexs[2][1]-vertexs[0][1])*(x-vertexs[2][0])+(vertexs[0][0]-vertexs[2][0])*(y-vertexs[2][1]))/
-                                    ((vertexs[1][1]-vertexs[2][1])*(vertexs[0][0]-vertexs[2][0])+(vertexs[2][0]-vertexs[1][0])*(vertexs[0][1]-vertexs[2][1]));
-
-                    var lamadaC=1-lamadaA-lamadaB;
-
-
-                    return [lamadaA,lamadaB,lamadaC];
-                }
-
-                crossProduct(A,B)
-                {
-                    var cross=[(A[1]*B[2]-A[2]*B[1]),
-                                (A[2]*B[0]-A[0]*B[2]),
-                                (A[0]*B[1]-A[1]*B[0])];
-
-                    return normalize(cross);
-                }
-
-                scanLine(face,index)
-                {
-                    var vertexs=[this.vertex[face[0]],this.vertex[face[1]],this.vertex[face[2]]];
-
-                    var facePixel=[];
-
-                    var maxY=Math.max(vertexs[0][1],vertexs[1][1],vertexs[2][1]);
-                    var minY=Math.min(vertexs[0][1],vertexs[1][1],vertexs[2][1]);
-
-                    for(let scanY=minY;scanY<=maxY;scanY++)
-                    {
-                        var intersections=[];
-
-                        for(let i=0;i<3;i++)
-                        {
-                            var v1=vertexs[i];
-                            var v2=vertexs[(i+1)%3];
-
-                            if(((scanY-v1[1])*(scanY-v2[1])<1e-5)&&Math.abs(v1[1]-v2[1])>1e-5)
-                            {
-                                var x=v1[0] + (scanY - v1[1]) * (v2[0] - v1[0]) / (v2[1] - v1[1]);
-                                var z=(1/v1[2]) + (scanY - v1[1]) * ((1/v2[2]) - (1/v1[2])) / (v2[1] - v1[1]);
-
-                                intersections.push([x,z]);
-                            }
-                        }
-
-                        if(intersections.length==2)
-                        {
-                            intersections.sort((a,b)=>a[0]-b[0]);
-
-                            var xleft=Math.round(intersections[0][0]);
-                            var xRight=Math.round(intersections[1][0]);
-
-                            var zleft=intersections[0][1];
-                            var zRight=intersections[1][1];
-
-                            for(let i=xleft;i<=xRight;i++)
-                            {
-                                var z=1/(zleft + (i-xleft) * (zRight - zleft) / (xRight - xleft));
-
-                                //update ZBuffer
-                                if(z<this.ZBuffer[Math.round(scanY)][i])
-                                {
-                                    this.ZBuffer[Math.round(scanY)][i]=z;
-                                    
-                                    var lamada=this.barycentricInterpolate(vertexs,i,Math.round(scanY));
-
-                                    var normalVector=vector3Add(vector3Add(vector3multiply(this.vertexNormals[face[0]],lamada[0]),vector3multiply(this.vertexNormals[face[1]],lamada[1])),vector3multiply(this.vertexNormals[face[2]],lamada[2]));
-                                    normalVector=normalize(normalVector);
-
-                                    var uv=vector2Add(vector2multiply(this.faceUV[index][0],lamada[0]),vector2Add(vector2multiply(this.faceUV[index][1],lamada[1]),vector2multiply(this.faceUV[index][2],lamada[2])));
-                                    var color=this.textureSample(textureData,uv);
-
-                                    //var wordPos=vector3Add(vector3multiply(this.vertexWorld[face[0]],lamada[0]),vector3Add(vector3multiply(this.vertexWorld[face[1]],lamada[1]),vector3multiply(this.vertexWorld[face[2]],lamada[2])));
-                                    //var lightDirection=normalize(vector3Add(pointLight,vector3multiply(wordPos,-1)));
-
-
-                                    //var color=vector3DotProduct([this.vertexColor[face[0]],this.vertexColor[face[1]],this.vertexColor[face[2]]],lamada);
-                                    //Math.max(0,vector3DotProduct(directionLight,this.faceNormalVectors[index])*255)
-
-                                    //this.drawPixel(i,Math.round(scanY),Math.max(0,vector3DotProduct(normalVector,directionLight)*255));
-                                    //this.drawPixelRGB(i,Math.round(scanY),vector3multiply(color,Math.max(0,vector3DotProduct(normalVector,directionLight))));
-                                    this.drawPixelRGB(i,Math.round(scanY),color);
-                                }
-
-                                facePixel.push([i,Math.round(scanY)]);
-                            }
-                        }
-                    }
-
-                    return facePixel;
-                }
-
-                draw()
-                {
-                    //ctx.clearRect(0,0,canvasWidth,canvasHeight);
-                    this.buffer.fill(0);
-                    this.ZBuffer=Array.from({ length: canvasHeight }, () => Array(canvasWidth).fill(1));
-
-                    for(let i=0;i<objectList.length;i++)
-                    {
-                        this.vertex=nj.array(objectList[i].vertex).T;
-                        this.vertexNormals=Array.from({ length: this.vertex.shape[1] }, () => Array(this.vertex.shape[0]).fill(0));
-
-                        this.transform(objectList[i]);
-                        this.vertexWorld=this.vertex.T.tolist();
-
-                        //nomarl vector
-                        this.generateNormalVector();
-                        
-
-                        // this.vertexNormals=[[0.577,-0.577,0.577],
-                        //                     [-0.577,-0.577,0.577],
-                        //                     [-0.577,-0.577,-0.577],
-                        //                     [0.577,-0.577,-0.577],
-                        //                     [0.577,0.577,0.577],
-                        //                     [-0.577,0.577,0.577],
-                        //                     [-0.577,0.577,-0.577],
-                        //                     [0.577,0.577,-0.577],
-                        //                 ];
-
-                        //this.generateVertexColor();
-
-
-                        this.transformCamera();
-                        this.transformScreen();
-
-                        this.vertex=this.vertex.T;
-
-                        //取xy坐标
-                        var col0=this.vertex.slice(null,[0,1]);
-                        var col1=nj.subtract(nj.ones([this.vertex.shape[0],1]).multiply(canvasHeight),this.vertex.slice(null,[1,2]));
-                        var col3=this.vertex.slice(null,[2,3]);
-                        this.vertex=nj.concatenate(col0,col1,col3).tolist();
-
-
-                        for(let j=0;j<objectList[i].faces.length;j++)
-                        {
-                            var face=objectList[i].faces[j];
-
-                            var fragment=pipeline.scanLine(face,j);
-
-
-                            // for(let k=0;k<fragment.length;k++)
-                            //     pipeline.drawPixel(fragment[k][0],fragment[k][1],"green");
-
-                            // this.drawLine(this.vertex[face[0]].slice(0,2),this.vertex[face[1]].slice(0,2),"black");
-                            // this.drawLine(this.vertex[face[0]].slice(0,2),this.vertex[face[2]].slice(0,2),"black");
-                            // this.drawLine(this.vertex[face[1]].slice(0,2),this.vertex[face[2]].slice(0,2),"black");   
-                        }
-
-                        ctx.putImageData(this.imageData, 0, 0);
-                        //for(let i=0;i<this.vertex.length;i++)
-                           //ctx.fillText((i).toString(),this.vertex[i][0],this.vertex[i][1]);
-                        
-                    }
-                }
-
-
-            }
-
-            function vector3Add(A,B)
-            {
-                return [A[0]+B[0],A[1]+B[1],A[2]+B[2]];
-            }
-
-            function vector2Add(A,B)
-            {
-                return [A[0]+B[0],A[1]+B[1]];
-            }
-
-            function vector3DotProduct(A,B)
-            {
-                return A[0]*B[0]+A[1]*B[1]+A[2]*B[2];
-            }
-
-            function normalize(vector)
-            {
-                var norm=math.sqrt(vector[0]*vector[0]+vector[1]*vector[1]+vector[2]*vector[2]);
-                return [vector[0]/norm,vector[1]/norm,vector[2]/norm];
-            }
-
-            function vector3multiply(vector,a)
-            {
-                return [vector[0]*a,vector[1]*a,vector[2]*a];
-            }
-
-            function vector2multiply(vector,a)
-            {
-                return [vector[0]*a,vector[1]*a];
-            }
-         
-
-            function lerp(a,b,alpha) 
-            {
-                return a+alpha*(b-a);
-            }
-
-            const canvas = document.getElementById('Canvas');
-            const ctx = canvas.getContext('2d');
-
-            var canvasWidth=800;
-            var canvasHeight=600;
-            var sqr2=math.sqrt(2);
-
-            //camera settings
-            var angleY=0;
-            var angleX=0;
-            var angleZ=0;
-
-            //view frustum parameters
-            var cameraPos=[0,20,50];
-            var far=80;
-            var near=10;
-            var fovX=math.PI/2;
-            var fovY=math.PI/2;
-
-            //light settings
-            var pointLight=[0,20,20];
-            var directionLight=normalize([-1,1,1]);
-
-            var objectList=[];
-            var textureData=[];
-            var textureWidth;
-            var textureHeight;
-            var pipeline=new RenderPipeline();
-
-            canvas.setAttribute("width",canvasWidth);
-            canvas.setAttribute("height",canvasHeight);
-
-            slider = document.getElementById('slider');
-            slider.addEventListener('input', function() {
-                objectList[0].rotation[1] = slider.value/360;
-                pipeline.draw();
-                console.log("call input function");
-            });
-
-            slider2 = document.getElementById('pointLighty');
-            slider2.addEventListener('input', function() {
-                pointLight[1] = Number(slider2.value);
-                pipeline.draw();
-            });
-
-            slider3 = document.getElementById('pointLightz');
-            slider3.addEventListener('input', function() {
-                pointLight[2] = Number(slider3.value);
-                pipeline.draw();
-            });
-            
-            document.getElementById('fileInput').addEventListener('change', function(event) {
-
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                
-                reader.onload = function(e) 
-                {
-                    //console.log(e.target.result); // 文件内容
-
-                    var result=e.target.result;
-                    var lines=result.split("\n");
-
-                    var vertex=[];
-                    var faces=[];
-
-                    for(let i=0;i<lines.length;i++)
-                    {
-                        var data=lines[i].split(" ");
-                        
-                        if(data[0]=='v')
-                            vertex.push([Number(data[1]),Number(data[2]),Number(data[3]),1]);
-                        else if(data[0]=='f')
-                            faces.push([Number(data[1])-1,Number(data[2])-1,Number(data[3])-1]);
-                    }
-
-                    var teapot=new GameObject(vertex,faces);
-                    teapot.scale=[10,10,10];
-                    teapot.position=[0,0,0];
-                    
-
-                    objectList.push(teapot);
-
-                    pipeline.draw();
-                };
-
-                reader.readAsText(file);
-
-            }
-            });
-
-            document.getElementById('material').addEventListener('change', function(event) {
-
-                const file = event.target.files[0];
-                if (!file) return;
-
-                const canvas = document.createElement('canvas');
-                const reader = new FileReader();
-
-                reader.onload = function(e) {
-
-                    const img = new Image();
-                    img.onload = function() {
-
-                        const ctx = canvas.getContext('2d');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-
-                        // 绘制图片到Canvas
-                        ctx.drawImage(img, 0, 0);
-
-                        // 获取像素数据
-                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-                        textureData = imageData.data;
-                        textureWidth=img.width;
-                        textureHeight=img.height;
-
-                    };
-                    img.src = e.target.result;
-                };
-
-                reader.readAsDataURL(file);
-            });
-
-        </script>
+        <div>
+            <input type="file" id="fileInput">
+            <input type="file" id="material" multiple>
+        </div>
 
     </body>
 </html>
