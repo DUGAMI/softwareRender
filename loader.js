@@ -33,6 +33,7 @@ class Loader
     materialName="";
 
     vertexNum=0;
+    faceNum=0;
     currentVertexNum=0;
     vertexNormalNum=0;
     currentVertexNormalNum=0;
@@ -72,7 +73,10 @@ class Loader
                 this.rebase();
 
                 let newObject=window.main.genGameObject(this.vertex,this.faces,this.currentMeshName);
-                this.object.childList.push(this.genGameObject(newObject));
+                newObject=this.genGameObject(newObject);
+                newObject.scale=[1,1,1];
+
+                this.object.childList.push(newObject);
 
                 this.initMeshVaribles();
 
@@ -111,6 +115,8 @@ class Loader
             }
             else if(data[0]=='f')
             {
+                this.faceNum++;
+
                 if(data.length-1==3)
                 {
                     if(data[1].includes("/"))
@@ -146,7 +152,10 @@ class Loader
             this.rebase();
 
             let newObject=window.main.genGameObject(this.vertex,this.faces,this.currentMeshName);
-            this.object.childList.push(this.genGameObject(newObject));
+            newObject=this.genGameObject(newObject);
+            newObject.scale=[1,1,1];
+
+            this.object.childList.push(newObject);
         }
         else if(this.state=="DEFAULT_MESH")
         {
@@ -155,6 +164,9 @@ class Loader
             window.main.objectList.push(this.genGameObject(newObject));
             window.main.selectedObject=window.main.objectList.length-1;
         }
+
+        console.log("vertex num:"+this.vertexNum);
+        console.log("face num:"+this.faceNum);
     }
 
     rebase()
@@ -220,4 +232,5 @@ class Loader
         this.currentVertexNormalNum=0;
         this.currentVertexUVNum=0;
     }
+
 }

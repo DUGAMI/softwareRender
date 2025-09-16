@@ -1,5 +1,6 @@
 export {Input};
 import { Loader } from "./loader.js";
+import { lerp } from "./math.js";
 
 class Input
 {
@@ -14,6 +15,18 @@ class Input
             document.getElementById("slider").value=event.target.value;
 
         window.main.pipeline.drawScene();
+    }
+
+    static lerpRotation()
+    {
+        let rotationY=0;
+        
+        for(let alpha=0;alpha<1;alpha+=0.01)
+        {
+            rotationY=lerp(0,180,alpha);
+            window.main.transfromTable["RotationY"](rotationY);
+        }
+        
     }
 
     static DepthMap()

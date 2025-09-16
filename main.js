@@ -441,7 +441,8 @@ class RenderPipeline
 
         let Ambient=[32,32,32];
         let Diffuse=vector3multiply(diffuseColor,Math.max(0,vector3DotProduct(normalVector,main.directionLight)));//[0,188,212]
-        let Specular=vector3multiply([255,255,255],Math.pow(Math.max(0,vector3DotProduct(normalVector,halfVector)),256));
+        let Specular=vector3multiply([0,0,0],Math.pow(Math.max(0,vector3DotProduct(normalVector,halfVector)),256));
+        //let Specular=[0,0,0];
 
         return vector3Add(vector3Add(Ambient,Diffuse),Specular)
     }
@@ -509,9 +510,9 @@ class RenderPipeline
     }
 
     //讲真，我写的很奇怪，我应该写三个生成MVT矩阵的函数，然后一次性进行顶点变换的
+    
     draw(renderingObject,parentMatrix)
     {
-        console.log(renderingObject.objectName);
         let transformMatrix=nj.dot(parentMatrix,this.transformMartix([renderingObject.position,renderingObject.rotation,renderingObject.scale])); 
 
         if(renderingObject.vertex.length!=0)
@@ -601,7 +602,7 @@ class Main
         this.sqr2=math.sqrt(2);
 
         //view frustum parameters
-        this.MainCamera=new Camera([0,20,50],[0,0,0],80,10,math.PI/2,math.PI/2);
+        this.MainCamera=new Camera([0,20,50],[0,0,0],160,10,math.PI/2,math.PI/2);
 
         //light settings
         this.pointLight=[0,20,20];
@@ -689,5 +690,6 @@ document.getElementById('material').addEventListener('change', Input.readTexture
 document.getElementById('DepthMap').addEventListener('change', Input.DepthMap);
 document.getElementById('shaddingFrequency').addEventListener('change', Input.setShadingFrequency);
 document.getElementById('objectList').addEventListener('click', Input.selectedObject);
+document.getElementById('lerpRotation').addEventListener('click', Input.lerpRotation);
 
 main.canvas.addEventListener('click', Debug.drawFace);
