@@ -7,7 +7,7 @@ class Input
     //transform panel的值改变时重绘画面
     static inputTransform(event)
     {
-        var id=event.target.parentElement.id;
+        let id=event.target.parentElement.id;
 
         window.main.transfromTable[id](event.target.value);
 
@@ -45,7 +45,7 @@ class Input
 
     static setShadingFrequency(event)
     {
-        var shadingFrequency=event.target.value;
+        let shadingFrequency=event.target.value;
 
         if(shadingFrequency=="FlatShading")
         {
@@ -66,9 +66,9 @@ class Input
     //点击transfrom panel的具体属性时，把transfrom panel下面的滑动条更改为对应属性的滑动条
     static setSlideBar(event)
     {
-        var ID=this.id;
+        let ID=this.id;
         document.getElementById("sliderTitle").innerText=ID;
-        var slideBar=document.getElementById("slider");
+        let slideBar=document.getElementById("slider");
 
         if(ID.includes("Rotation"))
         {
@@ -87,7 +87,7 @@ class Input
     //滑动条的值改变时，更改transfrom panel对应属性的值
     static setValueWithSlider(event) 
     {
-        var id=window.main.slider.previousElementSibling.innerText;
+        let id=window.main.slider.previousElementSibling.innerText;
 
         if(id.includes("Rotation"))
             window.main.transfromTable[id](slider.value);
@@ -101,7 +101,7 @@ class Input
 
     static selectedObject(event)
     {
-        var objectName=event.target.innerText;
+        let objectName=event.target.innerText;
 
         for(let i=0;i<window.main.objectList.length;i++)
         {
@@ -184,16 +184,16 @@ class Input
 
         const rect = window.main.canvas.getBoundingClientRect();
 
-        var x=event.clientX - rect.left;
-        var y=event.clientY - rect.top;
+        let x=event.clientX - rect.left;
+        let y=event.clientY - rect.top;
 
         console.log(`x:${x},y:${y}`);
 
-        var faceID=window.main.pipeline.IDBuffer[y][x];
+        let faceID=window.main.pipeline.IDBuffer[y][x];
 
-        var vertexID1=window.main.objectList[0].faces[faceID][0];
-        var vertexID2=window.main.objectList[0].faces[faceID][1];
-        var vertexID3=window.main.objectList[0].faces[faceID][2];
+        let vertexID1=window.main.objectList[0].faces[faceID][0];
+        let vertexID2=window.main.objectList[0].faces[faceID][1];
+        let vertexID3=window.main.objectList[0].faces[faceID][2];
 
         console.log(`vertex1:${vertexID1},vertex2:${vertexID2},vertex3:${vertexID3},faceID:${faceID}`);
 

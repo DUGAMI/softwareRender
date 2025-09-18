@@ -116,7 +116,7 @@ class RenderPipeline
     // Function to draw a pixel
     drawPixel(x, y, color) {
 
-        var index = (y * this.viewPort.canvasWidth + x) * 4;
+        let index = (y * this.viewPort.canvasWidth + x) * 4;
         this.buffer[index] = color;   // R
         this.buffer[index + 1] = color; // G
         this.buffer[index + 2] = color;   // B
@@ -125,7 +125,7 @@ class RenderPipeline
 
     drawPixelRGB(x, y, color){
 
-        var index = (y * this.viewPort.canvasWidth + x) * 4;
+        let index = (y * this.viewPort.canvasWidth + x) * 4;
         this.buffer[index] = color[0];   // R
         this.buffer[index + 1] = color[1]; // G
         this.buffer[index + 2] = color[2];   // B
@@ -252,7 +252,7 @@ class RenderPipeline
     {
         let res=nj.dot(this.Projection(camera),vertex);
 
-        var W=res.slice([3,4],null).T;
+        let W=res.slice([3,4],null).T;
         W=nj.concatenate(W,W,W,W).T;
 
         return nj.divide(res,W);
@@ -266,21 +266,21 @@ class RenderPipeline
 
     generateFaceNormalVector()
     {
-        var vertex=this.vertex.T.tolist();
+        let vertex=this.vertex.T.tolist();
 
         //generate normal vector with face
         for(let i=0;i<main.objectList[this.objectIndex].faces.length;i++)
         {
-            var face=main.objectList[this.objectIndex].faces[i];
+            let face=main.objectList[this.objectIndex].faces[i];
 
-            var A=vertex[face[0]];
-            var B=vertex[face[1]];
-            var C=vertex[face[2]];
+            let A=vertex[face[0]];
+            let B=vertex[face[1]];
+            let C=vertex[face[2]];
 
-            var AB=[B[0]-A[0],B[1]-A[1],B[2]-A[2]];
-            var AC=[C[0]-A[0],C[1]-A[1],C[2]-A[2]];
+            let AB=[B[0]-A[0],B[1]-A[1],B[2]-A[2]];
+            let AC=[C[0]-A[0],C[1]-A[1],C[2]-A[2]];
 
-            var normalVector=crossProduct(AB,AC);
+            let normalVector=crossProduct(AB,AC);
             this.faceNormalVectors[i]=normalVector;
 
         }
@@ -334,8 +334,8 @@ class RenderPipeline
 
         for(let i=0;i<this.vertexWorld.length;i++)
         {
-            var lightDirection=normalize(vector3Add(pointLight,vector3multiply(this.vertexWorld[i],-1)));
-            var normalVector=this.vertexNormalVectors[i];
+            let lightDirection=normalize(vector3Add(pointLight,vector3multiply(this.vertexWorld[i],-1)));
+            let normalVector=this.vertexNormalVectors[i];
 
             this.vertexColor.push(Math.max(0,vector3DotProduct(lightDirection,normalVector)*255));
         }
@@ -345,13 +345,13 @@ class RenderPipeline
     //sample pixel of texture according to uv
     textureSample(texture,uv)
     {
-        var x=Math.round(uv[0]*(texture.textureWidth-1));
-        var y=Math.round((1-uv[1])*(texture.textureHeight-1));
+        let x=Math.round(uv[0]*(texture.textureWidth-1));
+        let y=Math.round((1-uv[1])*(texture.textureHeight-1));
 
-        var index=(y*texture.textureWidth+x)*4
-        var R=texture.textureData[index];
-        var G=texture.textureData[index+1];
-        var B=texture.textureData[index+2];
+        let index=(y*texture.textureWidth+x)*4
+        let R=texture.textureData[index];
+        let G=texture.textureData[index+1];
+        let B=texture.textureData[index+2];
 
         return [R,G,B];
     }
@@ -504,8 +504,8 @@ class RenderPipeline
 
     depthMapShader(i,j)
     {
-        var depthValue=this.ZBuffer[i][j];
-        var colorValue=Math.floor((1-depthValue)*255);
+        let depthValue=this.ZBuffer[i][j];
+        let colorValue=Math.floor((1-depthValue)*255);
         this.drawPixelRGB(j,i,[colorValue,colorValue,colorValue]);   
     }
 
@@ -536,9 +536,9 @@ class RenderPipeline
             this.vertex=this.vertex.T;
 
             //取xy坐标
-            var col0=this.vertex.slice(null,[0,1]);
-            var col1=nj.subtract(nj.ones([this.vertex.shape[0],1]).multiply(this.viewPort.canvasHeight),this.vertex.slice(null,[1,2]));
-            var col2=this.vertex.slice(null,[2,3]);
+            let col0=this.vertex.slice(null,[0,1]);
+            let col1=nj.subtract(nj.ones([this.vertex.shape[0],1]).multiply(this.viewPort.canvasHeight),this.vertex.slice(null,[1,2]));
+            let col2=this.vertex.slice(null,[2,3]);
             this.vertex=nj.concatenate(col0,col1,col2).tolist();
 
 
@@ -673,14 +673,14 @@ class Main
     }
 }
 
-var main=Main.getInstance();
+let main=Main.getInstance();
 window.main=main;
 main.pipeline=new RenderPipeline();
 
 //事件处理代码
 for(const ID of main.IDList)
 {
-    var transformInput=document.getElementById(ID);
+    let transformInput=document.getElementById(ID);
     transformInput.childNodes[1].addEventListener('input',Input.inputTransform);
     transformInput.addEventListener("click",Input.setSlideBar);
 }

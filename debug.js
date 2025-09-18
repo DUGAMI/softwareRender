@@ -8,8 +8,8 @@ class Debug
 
         const rect = window.main.canvas.getBoundingClientRect();
 
-        var x=event.clientX - rect.left;
-        var y=event.clientY - rect.top;
+        let x=event.clientX - rect.left;
+        let y=event.clientY - rect.top;
 
         let object=window.main.pipeline.ObjectBuffer[y][x];
         let faceIndex=window.main.pipeline.IDBuffer[y][x];

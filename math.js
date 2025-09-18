@@ -15,7 +15,7 @@ function vector3DotProduct(A,B)
 
 function normalize(vector)
 {
-    var norm=math.sqrt(vector[0]*vector[0]+vector[1]*vector[1]+vector[2]*vector[2]);
+    let norm=math.sqrt(vector[0]*vector[0]+vector[1]*vector[1]+vector[2]*vector[2]);
     return [vector[0]/norm,vector[1]/norm,vector[2]/norm];
 }
 
@@ -36,13 +36,13 @@ function lerp(a,b,alpha)
 
 function barycentricInterpolate(vertexs,x,y)
 {
-    var lamadaA=((vertexs[1][1]-vertexs[2][1])*(x-vertexs[2][0])+(vertexs[2][0]-vertexs[1][0])*(y-vertexs[2][1]))/
+    let lamadaA=((vertexs[1][1]-vertexs[2][1])*(x-vertexs[2][0])+(vertexs[2][0]-vertexs[1][0])*(y-vertexs[2][1]))/
                     ((vertexs[1][1]-vertexs[2][1])*(vertexs[0][0]-vertexs[2][0])+(vertexs[2][0]-vertexs[1][0])*(vertexs[0][1]-vertexs[2][1]));
 
-    var lamadaB=((vertexs[2][1]-vertexs[0][1])*(x-vertexs[2][0])+(vertexs[0][0]-vertexs[2][0])*(y-vertexs[2][1]))/
+    let lamadaB=((vertexs[2][1]-vertexs[0][1])*(x-vertexs[2][0])+(vertexs[0][0]-vertexs[2][0])*(y-vertexs[2][1]))/
                     ((vertexs[1][1]-vertexs[2][1])*(vertexs[0][0]-vertexs[2][0])+(vertexs[2][0]-vertexs[1][0])*(vertexs[0][1]-vertexs[2][1]));
 
-    var lamadaC=1-lamadaA-lamadaB;
+    let lamadaC=1-lamadaA-lamadaB;
 
 
     return [lamadaA,lamadaB,lamadaC];
@@ -50,7 +50,7 @@ function barycentricInterpolate(vertexs,x,y)
 
 function crossProduct(A,B)
 {
-    var cross=[(A[1]*B[2]-A[2]*B[1]),
+    let cross=[(A[1]*B[2]-A[2]*B[1]),
                 (A[2]*B[0]-A[0]*B[2]),
                 (A[0]*B[1]-A[1]*B[0])];
 
