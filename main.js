@@ -561,6 +561,7 @@ class RenderPipeline
             this.ctx.putImageData(this.imageData, 0, 0);
         }
 
+        //draw child object recursively
         for(let object of renderingObject.childList)
         {
             this.renderingObject=object;

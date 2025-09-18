@@ -159,7 +159,7 @@ class Loader
         }
         else if(this.state=="DEFAULT_MESH")
         {
-            let newObject=window.main.genGameObject(this.vertex,this.faces,this.fileName);
+            let newObject=window.main.genGameObject(this.vertex,this.faces,fileName);
 
             window.main.objectList.push(this.genGameObject(newObject));
             window.main.selectedObject=window.main.objectList.length-1;
@@ -169,6 +169,7 @@ class Loader
         console.log("face num:"+this.faceNum);
     }
 
+    //split the vertex index in faces to make it start from 0
     rebase()
     {
         let vertexBaseIndex=this.vertexNum-this.currentVertexNum;
