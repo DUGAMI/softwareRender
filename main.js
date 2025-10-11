@@ -1,4 +1,4 @@
-import {vector3Add, vector2Add, vector3DotProduct, normalize, vector3multiply, vector2multiply, lerp, barycentricInterpolate, crossProduct} from './math.js';
+import {vector3Add, vector2Add, vector3DotProduct, normalize, vector3multiply, vector2multiply, lerp, barycentricInterpolate, crossProduct,rayCast} from './math.js';
 import {Input} from './input.js';
 import {Debug} from './debug.js';
 
@@ -47,6 +47,18 @@ class Camera
         this.near=near;
         this.fovX=fovX;
         this.fovY=fovY;
+    }
+}
+
+class Ray
+{
+    origin=[0,0,0];
+    direction=[0,0,0];
+
+    constructor(origin,direction)
+    {
+        this.origin=origin;
+        this.direction=direction;
     }
 }
 
@@ -440,7 +452,7 @@ class RenderPipeline
         let halfVector=normalize(vector3Add(main.directionLight,cameraDirection));
 
         let Ambient=[32,32,32];
-        let Diffuse=vector3multiply(diffuseColor,Math.max(0,vector3DotProduct(normalVector,main.directionLight)));//[0,188,212]
+        let Diffuse=vector3multiply(diffuseColor,Math.max(0,vector3DotProduct(normalVector,vector3multiply(main.directionLight,-1))));//[0,188,212]
         let Specular=vector3multiply([0,0,0],Math.pow(Math.max(0,vector3DotProduct(normalVector,halfVector)),256));
         //let Specular=[0,0,0];
 
@@ -583,6 +595,104 @@ class RenderPipeline
         }
     }
 
+    //1.射线和每个面元做相交测试
+    //2.把相交点从小到大排序（去除负数）
+    //3.对最近相交点和光源的连线进行测试，是否有遮挡（只要出现t大于0的情况就是阴影点）
+    //4.非阴影点的着色
+
+    drawRayTracing()
+    {
+        this.buffer.fill(0);
+
+        let object=main.objectList[0];
+        let transformMatrix=this.transformMartix([object.position,object.rotation,object.scale]);
+        let pointLight=[0,20,20,1];
+        let directionLight=normalize([-1,1,-1]);
+
+        let vertex=nj.dot(transformMatrix,nj.array(object.vertex).T);
+
+        let Ry=this.RotationY(-math.PI);
+        let T=this.translation(0,0,-50);
+        let viewMatrix=nj.dot(Ry,T);
+
+        let vertexView=nj.dot(viewMatrix,vertex);
+        let viewLight=nj.dot(viewMatrix,nj.array(pointLight).T).T.tolist();
+
+        let result=this.generateNormalVector(object,vertexView);
+        let faceNormalVectors=result["face"];
+
+        vertexView=vertexView.T.tolist();
+
+        let o=[0,0,50];
+
+        let ray;
+
+        for(let i=0;i<this.viewPort.canvasHeight;i++)
+        {
+            for(let j=0;j<this.viewPort.canvasWidth;j++)
+            {
+                ray=this.generateRay(j,i);
+                let intersectionList=[];
+
+                for(let k=0;k<object.faces.length;k++)
+                {
+                    //if (i==300&&j==470) debugger;
+
+                    let face=object.faces[k];
+                    let result=rayCast([0,0,0],ray,vertexView[face[0]],vertexView[face[1]],vertexView[face[2]]);
+
+                    if(result[0])
+                    {
+                        intersectionList.push([result[1][2],k]);
+                    }
+
+                    // if(result[0])
+                    // {
+                    //     let intersection=vector3Add(o,vector3multiply(ray,result[1][0]));
+                    //     let lightDirection=normalize(vector3Add(pointLight,vector3multiply(intersection,-1)));
+                        
+                    //     for(let l=0;l<object.faces.length;l++)
+                    //     {   
+                    //         let face=object.faces[l];
+                    //         let isShadow=rayCast(intersection,lightDirection,vertexWorld[face[0]],vertexWorld[face[1]],vertexWorld[face[2]]);
+
+                    //         if(isShadow[0]==true)
+                    //             color=[0,0,0]
+                    //     }
+                        
+                    // }
+                }
+
+                if(intersectionList.length==0)
+                {
+                    this.drawPixelRGB(j,i,[255,255,255]);
+                    continue;
+                }
+                intersectionList.sort((a,b)=>{return a[0]-b[0]});
+
+                let intersection=vector3Add([0,0,0],vector3multiply(ray,intersectionList[0][0]));
+                //let lightDirection=normalize(vector3Add(viewLight,vector3multiply(intersection,-1)));
+                let Diffuse=vector3multiply([0,188,212],Math.max(0,vector3DotProduct(faceNormalVectors[intersectionList[0][1]],directionLight)));//[0,188,212]
+
+                this.drawPixelRGB(j,i,Diffuse);
+            }
+        }
+
+        this.ctx.putImageData(this.imageData, 0, 0);
+        console.log("finish");
+    }
+
+    generateRay(pixelX,pixelY)
+    {
+        let a=this.viewPort.canvasWidth/this.viewPort.canvasWidth;
+        let x=a*(2*(pixelX+0.5)/this.viewPort.canvasWidth-1);
+        let y=2*(pixelY+0.5)/this.viewPort.canvasHeight-1;
+
+        let s=[x,y,1];
+
+        return normalize(s);
+    }
+
 }
 
 class Main
@@ -693,4 +803,4 @@ document.getElementById('shaddingFrequency').addEventListener('change', Input.se
 document.getElementById('objectList').addEventListener('click', Input.selectedObject);
 document.getElementById('lerpRotation').addEventListener('click', Input.lerpRotation);
 
-main.canvas.addEventListener('click', Debug.drawFace);
+main.canvas.addEventListener('click', Debug.debugRaytracing);

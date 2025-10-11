@@ -14,7 +14,7 @@ class Input
         if(document.getElementById("sliderTitle").innerText!="slide bar")
             document.getElementById("slider").value=event.target.value;
 
-        window.main.pipeline.drawScene();
+        window.main.pipeline.drawRayTracing();
     }
 
     static lerpRotation()
@@ -95,7 +95,7 @@ class Input
             window.main.transfromTable[id](slider.value);
 
         document.getElementById(id).childNodes[1].value=slider.value;
-        window.main.pipeline.drawScene();
+        window.main.pipeline.drawRayTracing();
         console.log("call input function");
     }
 
@@ -155,7 +155,7 @@ class Input
                 objectList.lastChild.setAttribute("class","selected");
 
                 Input.setTransfrom(window.main.objectList.at(-1));
-                window.main.pipeline.drawScene();
+                //window.main.pipeline.drawScene();
             };
 
             reader.readAsText(file);
