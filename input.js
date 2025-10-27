@@ -162,6 +162,26 @@ class Input
         }
     }
 
+    static glReadObjFile(event)
+    {
+        const file = event.target.files[0];
+
+        let fileName=file.name.split(".")[0];
+
+        if (file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) 
+            {
+                let loader=new Loader();
+                let object=loader.objLoader2(e,fileName);
+                objectList.push(object);
+            };
+
+            reader.readAsText(file);
+        }
+    }
+
     //设置transform panel的值
     static setTransfrom(GameObject)
     {

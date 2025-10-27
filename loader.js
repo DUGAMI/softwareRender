@@ -1,4 +1,5 @@
 export {Loader}
+import {GameObject} from './gameObject.js';
 
 class Loader
 {
@@ -163,6 +164,129 @@ class Loader
 
             window.main.objectList.push(this.genGameObject(newObject));
             window.main.selectedObject=window.main.objectList.length-1;
+        }
+
+        console.log("vertex num:"+this.vertexNum);
+        console.log("face num:"+this.faceNum);
+    }
+
+    objLoader2(e,fileName)
+    {
+        let result=e.target.result;
+        let lines=result.split("\n");
+
+        for(let i=0;i<lines.length;i++)
+        {
+            let data=lines[i].split(" ");
+
+            if(data[0]=='o'&&this.state=="DEFAULT_MESH")
+            {
+                this.state="MULTI_MESH";
+                this.currentMeshName=data[1];
+
+                this.object=window.main.genGameObject([],[],fileName);
+                this.object.scale=[10,10,10];
+                this.object.position=[0,0,0];
+
+                window.main.objectList.push(this.object);
+                window.main.selectedObject=window.main.objectList.length-1;
+
+                continue;
+            }
+            else if(data[0]=='o'&&this.state=="MULTI_MESH")
+            {   
+                //add object to child list
+                this.rebase();
+
+                let newObject=window.main.genGameObject(this.vertex,this.faces,this.currentMeshName);
+                newObject=this.genGameObject(newObject);
+                newObject.scale=[1,1,1];
+
+                this.object.childList.push(newObject);
+
+                this.initMeshVaribles();
+
+                this.currentMeshName=data[1];
+                continue;
+            }
+
+            
+            if(data[0]=='v')
+            {
+                this.vertex.push([Number(data[1]),Number(data[2]),Number(data[3]),1]);
+                this.vertexNum++;
+
+                if(this.state=="MULTI_MESH")
+                    this.currentVertexNum++;
+            }
+            else if(data[0]=='vn')
+            {
+                this.vertexNormal.push([Number(data[1]),Number(data[2]),Number(data[3])]);
+                this.vertexNormalNum++;
+
+                if(this.state=="MULTI_MESH")
+                    this.currentVertexNormalNum++;
+            }
+            else if(data[0]=='vt')
+            {
+                this.vertexUV.push([Number(data[1]),Number(data[2])]);
+                this.vertexUVNum++;
+
+                if(this.state=="MULTI_MESH")
+                    this.currentVertexUVNum++;
+            }
+            else if(data[0]=='usemtl')
+            {
+                this.materialName=data[1];
+            }
+            else if(data[0]=='f')
+            {
+                this.faceNum++;
+
+                if(data.length-1==3)
+                {
+                    if(data[1].includes("/"))
+                    {
+                        this.faces.push([Number(data[1].split("/")[0])-1,Number(data[2].split("/")[0])-1,Number(data[3].split("/")[0])-1]);
+                        this.facesNormalVectors.push([Number(data[1].split("/")[2])-1,Number(data[2].split("/")[2])-1,Number(data[3].split("/")[2])-1]);
+                        this.UVIndexes.push([Number(data[1].split("/")[1])-1,Number(data[2].split("/")[1])-1,Number(data[3].split("/")[1])-1]);
+                    }
+                    else
+                        this.faces.push([Number(data[1])-1,Number(data[2])-1,Number(data[3])-1]);
+                }
+                else if(data.length-1>3)
+                {
+                    //多边形的情况，以第一个顶点为基准，分割成n－2个三角形，依次连接基准顶点和其他顶点即可
+                    for(let j=0;j<data.length-3;j++)
+                    {
+                        if(data[1].includes("/"))
+                        {
+                            this.faces.push([Number(data[1].split("/")[0])-1,Number(data[2+j].split("/")[0])-1,Number(data[3+j].split("/")[0])-1]);
+                            this.facesNormalVectors.push([Number(data[1].split("/")[2])-1,Number(data[2+j].split("/")[2])-1,Number(data[3+j].split("/")[2])-1]);
+                            this.UVIndexes.push([Number(data[1].split("/")[1])-1,Number(data[2+j].split("/")[1])-1,Number(data[3+j].split("/")[1])-1]);
+                        }
+                        else
+                            this.faces.push([Number(data[1])-1,Number(data[2+j])-1,Number(data[3+j])-1]);
+                    }
+                }
+            }
+        }
+
+        //last mesh or only one mesh
+        if(this.state=="MULTI_MESH")
+        {
+            this.rebase();
+
+            let newObject=window.main.genGameObject(this.vertex,this.faces,this.currentMeshName);
+            newObject=this.genGameObject(newObject);
+            newObject.scale=[1,1,1];
+
+            this.object.childList.push(newObject);
+        }
+        else if(this.state=="DEFAULT_MESH")
+        {
+            let newObject=new GameObject(this.vertex,this.faces,fileName);
+            return newObject;
         }
 
         console.log("vertex num:"+this.vertexNum);

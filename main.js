@@ -609,11 +609,14 @@ class RenderPipeline
         let pointLight=[0,20,20,1];
         let directionLight=normalize([-1,1,-1]);
 
+        //translate model vertex,light position to view space
         let vertex=nj.dot(transformMatrix,nj.array(object.vertex).T);
 
+        let Rx=this.RotationX(-0.5*math.PI);
         let Ry=this.RotationY(-math.PI);
-        let T=this.translation(0,0,-50);
-        let viewMatrix=nj.dot(Ry,T);
+        let R=nj.dot(Rx,Ry);
+        let T=this.translation(0,-50,0);
+        let viewMatrix=nj.dot(Rx,T);
 
         let vertexView=nj.dot(viewMatrix,vertex);
         let viewLight=nj.dot(viewMatrix,nj.array(pointLight).T).T.tolist();
@@ -631,9 +634,12 @@ class RenderPipeline
         {
             for(let j=0;j<this.viewPort.canvasWidth;j++)
             {
+                let isShadow=false;
+
                 ray=this.generateRay(j,i);
                 let intersectionList=[];
 
+                //ray-triangles intersection test
                 for(let k=0;k<object.faces.length;k++)
                 {
                     //if (i==300&&j==470) debugger;
@@ -646,21 +652,6 @@ class RenderPipeline
                         intersectionList.push([result[1][2],k]);
                     }
 
-                    // if(result[0])
-                    // {
-                    //     let intersection=vector3Add(o,vector3multiply(ray,result[1][0]));
-                    //     let lightDirection=normalize(vector3Add(pointLight,vector3multiply(intersection,-1)));
-                        
-                    //     for(let l=0;l<object.faces.length;l++)
-                    //     {   
-                    //         let face=object.faces[l];
-                    //         let isShadow=rayCast(intersection,lightDirection,vertexWorld[face[0]],vertexWorld[face[1]],vertexWorld[face[2]]);
-
-                    //         if(isShadow[0]==true)
-                    //             color=[0,0,0]
-                    //     }
-                        
-                    // }
                 }
 
                 if(intersectionList.length==0)
@@ -671,10 +662,28 @@ class RenderPipeline
                 intersectionList.sort((a,b)=>{return a[0]-b[0]});
 
                 let intersection=vector3Add([0,0,0],vector3multiply(ray,intersectionList[0][0]));
-                //let lightDirection=normalize(vector3Add(viewLight,vector3multiply(intersection,-1)));
-                let Diffuse=vector3multiply([0,188,212],Math.max(0,vector3DotProduct(faceNormalVectors[intersectionList[0][1]],directionLight)));//[0,188,212]
+                let lightDirection=normalize(vector3Add(viewLight,vector3multiply(intersection,-1)));
+                
+                //shdaow point test
+                for(let k=0;k<object.faces.length;k++)
+                {
+                    let face=object.faces[k];
+                    let result=rayCast(intersection,lightDirection,vertexView[face[0]],vertexView[face[1]],vertexView[face[2]]);
 
-                this.drawPixelRGB(j,i,Diffuse);
+                    if(result[0]&&result[1][2]>0)
+                    {
+                        this.drawPixelRGB(j,i,[32,32,32]);
+                        isShadow=true;
+                        break;
+                    }
+                }
+
+                //shading pixel
+                if(isShadow==false)
+                    {
+                    let Diffuse=vector3multiply([255,255,255],Math.max(0,vector3DotProduct(faceNormalVectors[intersectionList[0][1]],lightDirection)));//[0,188,212]
+                    this.drawPixelRGB(j,i,vector3Add(Diffuse,[32,32,32]));
+                }
             }
         }
 
@@ -786,6 +795,14 @@ class Main
 let main=Main.getInstance();
 window.main=main;
 main.pipeline=new RenderPipeline();
+
+main.objectList.push(new GameObject(
+    [[40,-1,40,1],
+    [-40,-1,40,1],
+    [40,-1,-40,1],
+    [-40,-1,-40,1]],
+    [[2,1,0],
+    [1,2,3]],"plane"));
 
 //事件处理代码
 for(const ID of main.IDList)
