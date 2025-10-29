@@ -82,7 +82,7 @@ function drawScene() {
   // Draw the geometry.
   let primitiveType = gl.TRIANGLES;
   let offset = 0;
-  let count = 36;
+  let count = objectList[0].faces.length*3;
   gl.drawArrays(primitiveType, offset, count);
 }
 
@@ -96,9 +96,9 @@ function setGeometry(gl) {
 
   for(let i=0;i<object.faces.length;i++)
   {
-    vertexList.push(object.vertex[object.faces[i][0]].slice(0,3));
-    vertexList.push(object.vertex[object.faces[i][1]].slice(0,3));
-    vertexList.push(object.vertex[object.faces[i][2]].slice(0,3));
+    vertexList=vertexList.concat(object.vertex[object.faces[i][0]].slice(0,3));
+    vertexList=vertexList.concat(object.vertex[object.faces[i][1]].slice(0,3));
+    vertexList=vertexList.concat(object.vertex[object.faces[i][2]].slice(0,3));
   }
 
   gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertexList),gl.STATIC_DRAW);
@@ -106,52 +106,18 @@ function setGeometry(gl) {
 
 // Fill the current ARRAY_BUFFER buffer with colors for the 'F'.
 function setColors(gl) {
-  gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Uint8Array([
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
 
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
+  let colorList=[];
+  let color=[0,188,212]
+  let object=objectList[0];
 
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
 
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212,
-        0,188,212
-      ]),
-      gl.STATIC_DRAW);
+  for(let i=0;i<object.faces.length*3;i++)
+  {
+    colorList=colorList.concat(color);
+  }
+  
+  gl.bufferData(gl.ARRAY_BUFFER,new Uint8Array(colorList),gl.STATIC_DRAW);
 }
 
 
@@ -344,6 +310,21 @@ function glReadObjFile(event)
             gl.vertexAttribPointer(
                 positionAttributeLocation, size, type, normalize, stride, offset);
 
+            gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+            setColors(gl);
+
+            // Turn on the attribute
+            gl.enableVertexAttribArray(colorAttributeLocation);
+
+            // Tell the attribute how to get data out of colorBuffer (ARRAY_BUFFER)
+            size = 3;          // 3 components per iteration
+            type = gl.UNSIGNED_BYTE;   // the data is 8bit unsigned bytes
+            normalize = true;  // convert from 0-255 to 0.0-1.0
+            stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next color
+            offset = 0;        // start at the beginning of the buffer
+            gl.vertexAttribPointer(
+                colorAttributeLocation, size, type, normalize, stride, offset);
+
             drawScene();
         };
 
@@ -399,22 +380,8 @@ gl.bindVertexArray(vao);
 // create the color buffer, make it the current ARRAY_BUFFER
 // and copy in the color values
 let colorBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-setColors(gl);
 
-// Turn on the attribute
-gl.enableVertexAttribArray(colorAttributeLocation);
-
-// Tell the attribute how to get data out of colorBuffer (ARRAY_BUFFER)
-let size = 3;          // 3 components per iteration
-let type = gl.UNSIGNED_BYTE;   // the data is 8bit unsigned bytes
-let normalize = true;  // convert from 0-255 to 0.0-1.0
-let stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next color
-let offset = 0;        // start at the beginning of the buffer
-gl.vertexAttribPointer(
-    colorAttributeLocation, size, type, normalize, stride, offset);
-
-drawScene();
+//drawScene();
 
 // Setup a ui.
 webglLessonsUI.setupSlider("#fieldOfView", {value: radToDeg(fieldOfViewRadians), slide: updateFieldOfView, min: 1, max:179 });
